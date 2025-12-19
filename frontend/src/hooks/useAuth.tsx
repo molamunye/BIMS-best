@@ -13,6 +13,10 @@ interface User {
   email: string;
   role: "client" | "broker" | "admin";
   token?: string;
+  avatar?: string;
+  phone?: string;
+  bio?: string;
+  location?: string;
 }
 
 interface AuthContextType {
@@ -20,6 +24,7 @@ interface AuthContextType {
   // session: Session | null; // Removed session
   signUp: (email: string, password: string, fullName: string, role?: "client" | "broker" | "admin") => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
+  updateUser: (updatedUser: Partial<User>) => void;
   signOut: () => Promise<void>;
   loading: boolean;
 }
@@ -88,6 +93,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUser = (updatedUser: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null;
+      const newUser = { ...prev, ...updatedUser };
+      localStorage.setItem('user', JSON.stringify(newUser));
+      return newUser;
+    });
+  };
+
   const signOut = async () => {
     localStorage.removeItem('user');
     setUser(null);
@@ -96,7 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, signUp, signIn, signOut, loading }}>
+    <AuthContext.Provider value={{ user, signUp, signIn, updateUser, signOut, loading }}>
       {children}
     </AuthContext.Provider>
   );

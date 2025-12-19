@@ -141,19 +141,18 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
       });
 
       // Use the multiple upload endpoint
-      const response = await fetch('http://localhost:5000/api/upload/multiple', {
-        method: 'POST',
-        body: formData,
-        // No Content-Type header needed for FormData, functionality is handled by browser
+      const response = await api.post('/upload/multiple', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('Failed to upload images');
       }
 
-      const data = await response.json();
-      if (data.urls) {
-        uploadedUrls.push(...data.urls);
+      if (response.data.urls) {
+        uploadedUrls.push(...response.data.urls);
       }
     } catch (error) {
       console.error('Image upload error:', error);
@@ -173,18 +172,18 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
       const formData = new FormData();
       formData.append('file', documentFile);
 
-      const response = await fetch('http://localhost:5000/api/upload', {
-        method: 'POST',
-        body: formData,
+      const response = await api.post('/upload', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
       });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('Failed to upload document');
       }
 
-      const data = await response.json();
       setUploadingDoc(false);
-      return data.url;
+      return response.data.url;
     } catch (error) {
       console.error('Document upload error:', error);
       toast.error("Failed to upload document");
@@ -232,23 +231,14 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
     try {
       if (listing) {
         // Update
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        const response = await fetch(`http://localhost:5000/api/listings/${listing._id || listing.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-          body: JSON.stringify(listingData)
-        });
+        const response = await api.put(`/listings/${listing._id || listing.id}`, listingData);
 
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.message || 'Failed to update listing');
+        if (response.status !== 200) {
+          throw new Error('Failed to update listing');
         }
 
         toast.success("Listing updated successfully");
-        } else {
+      } else {
         // Create - Show payment dialog first
         // Store listing data for after payment
         setPendingListingData(listingData);
@@ -268,7 +258,7 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
 
   const handlePaymentSuccess = async () => {
     if (!pendingListingData) return;
-    
+
     setLoading(true);
     try {
       // Listing should already be created as draft, webhook will activate it
@@ -290,196 +280,196 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
   return (
     <>
       <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="space-y-2">
-        <Label htmlFor="type">Type</Label>
-        <Select
-          value={formData.type}
-          onValueChange={(value) => setFormData({ ...formData, type: value, category_id: "" })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="property">Property</SelectItem>
-            <SelectItem value="vehicle">Vehicle</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
-        <Select
-          value={formData.category_id}
-          onValueChange={(value) => setFormData({ ...formData, category_id: value })}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Select category" />
-          </SelectTrigger>
-          <SelectContent>
-            {categories.map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>
-                {cat.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="title">Title</Label>
-        <Input
-          id="title"
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea
-          id="description"
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          required
-          rows={4}
-        />
-      </div>
-
-      <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="price">Price</Label>
-          <Input
-            id="price"
-            type="number"
-            step="0.01"
-            value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-            required
-          />
+          <Label htmlFor="type">Type</Label>
+          <Select
+            value={formData.type}
+            onValueChange={(value) => setFormData({ ...formData, type: value, category_id: "" })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="property">Property</SelectItem>
+              <SelectItem value="vehicle">Vehicle</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="location">Location</Label>
-          <Input
-            id="location"
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            required
-          />
-        </div>
-      </div>
-
-      {/* Property Images Upload */}
-      <div className="space-y-2">
-        <Label>Property Images (max 5)</Label>
-        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
-          {imagePreviewUrls.length > 0 && (
-            <div className="grid grid-cols-3 gap-2 mb-4">
-              {imagePreviewUrls.map((url, index) => (
-                <div key={index} className="relative group">
-                  <img
-                    src={url}
-                    alt={`Preview ${index + 1}`}
-                    className="w-full h-20 object-cover rounded-md"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => removeImage(index)}
-                    className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
+          <Label htmlFor="category">Category</Label>
+          <Select
+            value={formData.category_id}
+            onValueChange={(value) => setFormData({ ...formData, category_id: value })}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select category" />
+            </SelectTrigger>
+            <SelectContent>
+              {categories.map((cat) => (
+                <SelectItem key={cat.id} value={cat.id}>
+                  {cat.name}
+                </SelectItem>
               ))}
-            </div>
-          )}
-          <label className="flex flex-col items-center gap-2 cursor-pointer">
-            <Upload className="w-8 h-8 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Click to upload images</span>
-            <input
-              type="file"
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={handleImageSelect}
-              disabled={imagePreviewUrls.length >= 5}
-            />
-          </label>
+            </SelectContent>
+          </Select>
         </div>
-      </div>
 
-      {/* License/Document Upload */}
-      <div className="space-y-2">
-        <Label>License Document (PDF)</Label>
-        <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
-          {documentName ? (
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-primary" />
-                <span className="text-sm">{documentName}</span>
+        <div className="space-y-2">
+          <Label htmlFor="title">Title</Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+            required
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea
+            id="description"
+            value={formData.description}
+            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+            required
+            rows={8}
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="price">Price</Label>
+            <Input
+              id="price"
+              type="number"
+              step="0.01"
+              value={formData.price}
+              onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="location">Location</Label>
+            <Input
+              id="location"
+              value={formData.location}
+              onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+              required
+            />
+          </div>
+        </div>
+
+        {/* Property Images Upload */}
+        <div className="space-y-2">
+          <Label>Property Images (max 5)</Label>
+          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+            {imagePreviewUrls.length > 0 && (
+              <div className="grid grid-cols-3 gap-2 mb-4">
+                {imagePreviewUrls.map((url, index) => (
+                  <div key={index} className="relative group">
+                    <img
+                      src={url}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-20 object-cover rounded-md"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
+                      className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
               </div>
-              <button
-                type="button"
-                onClick={removeDocument}
-                className="p-1 hover:bg-muted rounded"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ) : (
+            )}
             <label className="flex flex-col items-center gap-2 cursor-pointer">
-              <FileText className="w-8 h-8 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Click to upload license PDF</span>
+              <Upload className="w-8 h-8 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Click to upload images</span>
               <input
                 type="file"
-                accept="application/pdf"
+                accept="image/*"
+                multiple
                 className="hidden"
-                onChange={handleDocumentSelect}
+                onChange={handleImageSelect}
+                disabled={imagePreviewUrls.length >= 5}
               />
             </label>
-          )}
+          </div>
         </div>
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="status">Status</Label>
-        <Select
-          value={formData.status}
-          onValueChange={(value) => setFormData({ ...formData, status: value })}
-        >
-          <SelectTrigger>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="sold">Sold</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+        {/* License/Document Upload */}
+        <div className="space-y-2">
+          <Label>License Document (PDF)</Label>
+          <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
+            {documentName ? (
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  <span className="text-sm">{documentName}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={removeDocument}
+                  className="p-1 hover:bg-muted rounded"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <label className="flex flex-col items-center gap-2 cursor-pointer">
+                <FileText className="w-8 h-8 text-muted-foreground" />
+                <span className="text-sm text-muted-foreground">Click to upload license PDF</span>
+                <input
+                  type="file"
+                  accept="application/pdf"
+                  className="hidden"
+                  onChange={handleDocumentSelect}
+                />
+              </label>
+            )}
+          </div>
+        </div>
 
-      <Button type="submit" className="w-full" disabled={loading || uploadingImages || uploadingDoc}>
-        {loading || uploadingImages || uploadingDoc ? (
-          <>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            {uploadingImages ? "Uploading images..." : uploadingDoc ? "Uploading document..." : "Saving..."}
-          </>
-        ) : (
-          listing ? "Update Listing" : "Create Listing"
-        )}
-      </Button>
-    </form>
+        <div className="space-y-2">
+          <Label htmlFor="status">Status</Label>
+          <Select
+            value={formData.status}
+            onValueChange={(value) => setFormData({ ...formData, status: value })}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="active">Active</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="sold">Sold</SelectItem>
+              <SelectItem value="inactive">Inactive</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
-    <PaymentDialog
-      open={showPaymentDialog}
-      onOpenChange={setShowPaymentDialog}
-      type="listing"
-      listingData={pendingListingData}
-      onSuccess={handlePaymentSuccess}
-      amount={100}
-    />
+        <Button type="submit" className="w-full" disabled={loading || uploadingImages || uploadingDoc}>
+          {loading || uploadingImages || uploadingDoc ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              {uploadingImages ? "Uploading images..." : uploadingDoc ? "Uploading document..." : "Saving..."}
+            </>
+          ) : (
+            listing ? "Update Listing" : "Create Listing"
+          )}
+        </Button>
+      </form>
+
+      <PaymentDialog
+        open={showPaymentDialog}
+        onOpenChange={setShowPaymentDialog}
+        type="listing"
+        listingData={pendingListingData}
+        onSuccess={handlePaymentSuccess}
+        amount={100}
+      />
     </>
   );
 }

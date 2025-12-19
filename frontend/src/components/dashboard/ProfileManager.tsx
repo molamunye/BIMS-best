@@ -8,13 +8,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
 import { Camera, Loader2 } from "lucide-react";
+import api from "@/lib/api";
 
 interface ProfileManagerProps {
   onAvatarChange?: (url: string) => void;
 }
 
 export default function ProfileManager({ onAvatarChange }: ProfileManagerProps) {
-  const { user } = useAuth();
+  const { user, updateUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -34,15 +35,10 @@ export default function ProfileManager({ onAvatarChange }: ProfileManagerProps) 
     if (!user) return;
 
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/auth/me');
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         setProfile({
           full_name: data.fullName || "",
           phone: data.phone || "",
@@ -80,25 +76,26 @@ export default function ProfileManager({ onAvatarChange }: ProfileManagerProps) 
     setUploading(true);
 
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
       const formData = new FormData();
       formData.append('avatar', file);
 
-      const response = await fetch('http://localhost:5000/api/users/avatar', {
-        method: 'POST',
+      const response = await api.post('/users/avatar', formData, {
         headers: {
-          'Authorization': `Bearer ${token}`
-        },
-        body: formData
+          'Content-Type': 'multipart/form-data'
+        }
       });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('Upload failed');
       }
 
-      const data = await response.json();
-      setProfile(prev => ({ ...prev, avatar_url: data.avatarUrl }));
-      if (onAvatarChange) onAvatarChange(data.avatarUrl);
+      const data = response.data;
+      const avatarUrl = data.avatar;
+
+      setProfile(prev => ({ ...prev, avatar_url: avatarUrl }));
+      updateUser({ avatar: avatarUrl });
+
+      if (onAvatarChange) onAvatarChange(avatarUrl);
       toast.success("Avatar updated successfully");
 
     } catch (error) {
@@ -116,24 +113,19 @@ export default function ProfileManager({ onAvatarChange }: ProfileManagerProps) 
     setSaving(true);
 
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/users/profile', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          fullName: profile.full_name,
-          phone: profile.phone,
-          bio: profile.bio,
-          location: profile.location
-        })
+      const response = await api.put('/users/profile', {
+        fullName: profile.full_name,
+        phone: profile.phone,
+        bio: profile.bio,
+        location: profile.location
       });
 
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error('Update failed');
       }
+
+      const updatedUserData = response.data;
+      updateUser(updatedUserData);
 
       toast.success("Profile updated successfully");
     } catch (error) {

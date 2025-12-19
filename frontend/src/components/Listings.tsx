@@ -6,6 +6,7 @@ import { MapPin, Bed, Bath, Car, Home, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { formatETB } from "@/lib/utils";
+import api from "@/lib/api";
 
 const Listings = () => {
   const navigate = useNavigate();
@@ -20,12 +21,9 @@ const Listings = () => {
   const loadListings = async () => {
     setLoading(true);
     try {
-      // Fetch active, approved listings (fetch more than 3 to allow selecting the newest ones)
-      const response = await fetch(
-        'http://localhost:5000/api/listings?status=active&verificationStatus=approved&limit=20'
-      );
-      if (!response.ok) throw new Error("Failed to fetch listings");
-      const data = await response.json();
+      // Fetch active, approved listings
+      const response = await api.get('/listings?status=active&verificationStatus=approved&limit=20');
+      const data = response.data;
 
       // Sort by creation date descending (newest first) and take only the top 3
       const sortedListings = (data || [])

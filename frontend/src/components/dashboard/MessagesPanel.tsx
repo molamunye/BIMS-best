@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { formatDistanceToNow } from "date-fns";
 import { Reply } from "lucide-react";
 import MessageForm from "./MessageForm";
@@ -25,15 +26,9 @@ export default function MessagesPanel() {
 
   const loadMessages = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/messages', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(data);
+      const response = await api.get('/messages');
+      if (response.status === 200) {
+        setMessages(response.data);
       }
     } catch (error) {
       console.error("Failed to load messages", error);
@@ -44,17 +39,10 @@ export default function MessagesPanel() {
 
   const markAsRead = async (messageId: string) => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      await fetch(`http://localhost:5000/api/messages/${messageId}/read`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
+      await api.put(`/messages/${messageId}/read`);
       setMessages(prev => prev.map(m => m._id === messageId ? { ...m, isRead: true } : m));
       // Notify other components (sidebar / badges) to refresh
-      try { window.dispatchEvent(new CustomEvent('messagesUpdated', { detail: { type: 'read', id: messageId } })); } catch (e) {}
+      try { window.dispatchEvent(new CustomEvent('messagesUpdated', { detail: { type: 'read', id: messageId } })); } catch (e) { }
     } catch (error) {
       console.error(error);
     }
@@ -63,22 +51,15 @@ export default function MessagesPanel() {
   const deleteMessage = async (messageId: string) => {
     if (!window.confirm('Delete this message? This cannot be undone.')) return;
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch(`http://localhost:5000/api/messages/${messageId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (response.ok) {
+      const response = await api.delete(`/messages/${messageId}`);
+      if (response.status === 200) {
         setMessages(prev => prev.filter(m => m._id !== messageId));
         // Notify other components to refresh counts
-        try { window.dispatchEvent(new CustomEvent('messagesUpdated', { detail: { type: 'delete', id: messageId } })); } catch (e) {}
+        try { window.dispatchEvent(new CustomEvent('messagesUpdated', { detail: { type: 'delete', id: messageId } })); } catch (e) { }
         toast.success('Message deleted');
         return;
       }
-      const body = await response.json().catch(() => ({}));
+      const body = response.data || {};
       toast.error(body.message || 'Failed to delete message');
     } catch (error) {
       console.error('Failed to delete message', error);
@@ -109,7 +90,7 @@ export default function MessagesPanel() {
               className="cursor-pointer"
               onClick={() => message.recipient?._id === user?.id && !message.isRead && markAsRead(message._id)}
             >
-                <CardHeader className="pb-3">
+              <CardHeader className="pb-3">
                 <div className="flex justify-between items-start">
                   <CardTitle className="text-base">
                     <span className="block">From: {message.sender?.fullName || '—'}</span>
@@ -131,7 +112,7 @@ export default function MessagesPanel() {
                 )}
               </CardHeader>
               <CardContent>
-                <p className="text-sm border-l-2 border-muted pl-3 py-1">{message.content}</p>
+                <p className="text-sm border-l-2 border-muted pl-3 py-1 break-words whitespace-pre-wrap">{message.content}</p>
               </CardContent>
             </div>
             <CardFooter className="pt-0 pb-4 flex justify-end gap-2">
@@ -176,10 +157,11 @@ export default function MessagesPanel() {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Reply to {replyMessage?.sender?.fullName}</DialogTitle>
+            <DialogDescription>Compose your reply to the message below.</DialogDescription>
           </DialogHeader>
           {replyMessage && (
             <div className="space-y-4">
-              <div className="bg-muted p-3 rounded-md text-sm text-muted-foreground">
+              <div className="bg-muted p-3 rounded-md text-sm text-muted-foreground break-words whitespace-pre-wrap">
                 <p className="font-semibold text-xs mb-1">Replying to:</p>
                 "{replyMessage.content}"
               </div>

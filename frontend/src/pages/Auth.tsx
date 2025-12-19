@@ -24,7 +24,6 @@ export default function Auth() {
     password: "",
     confirmPassword: "",
     fullName: "",
-    role: "client" as "client" | "broker" | "admin",
   });
 
   const [signInErrors, setSignInErrors] = useState<ValidationErrors>({});
@@ -97,7 +96,7 @@ export default function Auth() {
 
     setIsLoading(true);
     try {
-      await signUp(signUpData.email, signUpData.password, signUpData.fullName, signUpData.role);
+      await signUp(signUpData.email, signUpData.password, signUpData.fullName, "client");
     } catch (error: any) {
       const message = error?.message || "Sign up failed";
       toast.error(message);
@@ -106,8 +105,8 @@ export default function Auth() {
     }
   };
 
-  const handleForgotPassword = async () => {
-    toast.info("Forgot Password feature not implemented in backend yet.");
+  const handleForgotPassword = () => {
+    window.location.href = "/forgot-password";
   };
 
   // Clear errors when switching forms
@@ -268,17 +267,7 @@ export default function Auth() {
               <p className="text-red-500 text-xs mt-1 mb-2 text-left">{signUpErrors.confirmPassword}</p>
             )}
 
-            <div className="auth-input-box">
-              <select
-                value={signUpData.role}
-                onChange={(e) => setSignUpData({ ...signUpData, role: e.target.value as "client" | "broker" | "admin" })}
-                className="auth-select"
-              >
-                <option value="client">Client (Looking to buy/sell)</option>
-                <option value="broker">Broker (Real estate agent)</option>
-                <option value="admin">Admin (System administrator)</option>
-              </select>
-            </div>
+
 
             <button type="submit" className="auth-btn" disabled={isLoading}>
               {isLoading ? "Creating account..." : "Sign Up"}

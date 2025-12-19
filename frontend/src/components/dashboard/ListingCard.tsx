@@ -1,9 +1,9 @@
 import { useState, useEffect } from "react";
-import { formatETB } from "@/lib/utils";
+import { formatETB, cn } from "@/lib/utils";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Edit, MapPin, Trash2, MessageSquare, Handshake } from "lucide-react";
@@ -34,29 +34,19 @@ export default function ListingCard({ listing, canEdit, canSell, onDeleted, onUp
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [contactPaid, setContactPaid] = useState<boolean | null>(null);
   const [checkingPayment, setCheckingPayment] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   const handleDelete = async () => {
     if (!confirm("Are you sure you want to delete this listing?")) return;
 
     setDeleting(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch(`http://localhost:5000/api/listings/${listing._id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete listing');
-      }
-
+      await api.delete(`/listings/${listing._id}`);
       toast.success("Listing deleted");
       onDeleted(listing._id);
     } catch (error: any) {
       console.error(error);
-      toast.error(error.message || "Failed to delete listing");
+      toast.error(error.response?.data?.message || "Failed to delete listing");
     } finally {
       setDeleting(false);
     }
@@ -75,22 +65,13 @@ export default function ListingCard({ listing, canEdit, canSell, onDeleted, onUp
     }
     setSelling(true);
     try {
-      const token = user?.token;
-      const response = await fetch(`http://localhost:5000/api/listings/${listing._id}/sell`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ buyerId }),
-      });
+      const response = await api.post(`/listings/${listing._id}/sell`, { buyerId });
 
-      const resBody = await response.json();
-      if (!response.ok) {
-        throw new Error(resBody.message || 'Failed to mark as sold.');
+      if (response.status !== 200) {
+        throw new Error(response.data.message || 'Failed to mark as sold.');
       }
 
-      toast.success(resBody.message || "Listing marked as sold!");
+      toast.success(response.data.message || "Listing marked as sold!");
       setSellOpen(false);
       onUpdated();
     } catch (error: any) {
@@ -148,7 +129,7 @@ export default function ListingCard({ listing, canEdit, canSell, onDeleted, onUp
         </div>
       </div>
       <CardHeader className="pb-3 pt-4">
-        <CardTitle className="text-lg line-clamp-2">{listing.title}</CardTitle>
+        <CardTitle className="text-lg line-clamp-2 break-words">{listing.title}</CardTitle>
       </CardHeader>
 
       <CardContent className="space-y-2 pb-3 flex-grow">
@@ -157,7 +138,22 @@ export default function ListingCard({ listing, canEdit, canSell, onDeleted, onUp
           <MapPin className="w-4 h-4 mr-1" />
           {listing.location}
         </div>
-        <p className="text-sm text-muted-foreground line-clamp-3">{listing.description}</p>
+        <div className="relative">
+          <p className={cn(
+            "text-sm text-muted-foreground break-words whitespace-pre-wrap",
+            !isExpanded && "line-clamp-4"
+          )}>
+            {listing.description}
+          </p>
+          {listing.description && listing.description.length > 150 && (
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-xs font-medium text-primary hover:underline mt-1 focus:outline-none"
+            >
+              {isExpanded ? "Show Less" : "Read More"}
+            </button>
+          )}
+        </div>
         <div className="flex flex-col gap-1 text-xs text-muted-foreground mt-2">
           {listing.owner?.fullName && (
             <div className="flex justify-between">
@@ -181,7 +177,7 @@ export default function ListingCard({ listing, canEdit, canSell, onDeleted, onUp
       </CardContent>
 
       <CardFooter className="gap-2">
-        {canEdit && (
+        {canEdit && user?.role !== 'broker' && (
           <>
             <Dialog open={editOpen} onOpenChange={setEditOpen}>
               <DialogTrigger asChild>
@@ -193,6 +189,7 @@ export default function ListingCard({ listing, canEdit, canSell, onDeleted, onUp
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Edit Listing</DialogTitle>
+                  <DialogDescription>Update the details and images of your property or vehicle listing.</DialogDescription>
                 </DialogHeader>
                 <ListingForm listing={listing} onSuccess={handleUpdated} />
               </DialogContent>
@@ -225,6 +222,7 @@ export default function ListingCard({ listing, canEdit, canSell, onDeleted, onUp
                 <DialogContent>
                   <DialogHeader>
                     <DialogTitle>Send Message</DialogTitle>
+                    <DialogDescription>Send a message to the owner or assigned broker of this listing.</DialogDescription>
                   </DialogHeader>
                   <MessageForm
                     recipientId={listing.owner?._id || listing.owner || listing.assignedBroker?._id}

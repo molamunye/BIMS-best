@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -26,17 +27,9 @@ export default function ClientMyListings() {
   const loadMyListings = async () => {
     setLoading(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch(`http://localhost:5000/api/listings?owner=${user?.id}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (!response.ok) throw new Error("Failed to fetch listings");
-
-      const data = await response.json();
-      setListings(data || []);
-      setFilteredListings(data || []);
+      const response = await api.get(`/listings?owner=${user?.id}`);
+      setListings(response.data || []);
+      setFilteredListings(response.data || []);
     } catch (error) {
       console.error(error);
       // toast.error("Failed to load listings");
@@ -118,7 +111,7 @@ export default function ClientMyListings() {
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
           {filteredListings.map((listing) => (
-            <Card key={listing.id} className="overflow-hidden">
+            <Card key={listing._id || listing.id} className="overflow-hidden">
               <div className="aspect-video bg-muted flex items-center justify-center">
                 {listing.images && listing.images.length > 0 ? (
                   <img
@@ -132,7 +125,7 @@ export default function ClientMyListings() {
               </div>
               <CardHeader className="pb-2 p-4">
                 <div className="flex items-start justify-between gap-2">
-                  <CardTitle className="text-base sm:text-lg line-clamp-1">{listing.title}</CardTitle>
+                  <CardTitle className="text-base sm:text-lg line-clamp-1 break-words">{listing.title}</CardTitle>
                   {getStatusBadge(listing.status)}
                 </div>
                 <CardDescription className="flex items-center gap-1 text-xs sm:text-sm">

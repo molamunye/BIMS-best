@@ -29,7 +29,9 @@ const userSchema = new mongoose.Schema({
         pushNotifications: { type: Boolean, default: true },
         profileVisibility: { type: Boolean, default: true },
         showContactInfo: { type: Boolean, default: true },
-    }
+    },
+    resetCode: String,
+    resetCodeExpires: Date,
 }, {
     timestamps: true,
 });

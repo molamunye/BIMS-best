@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 // import { supabase } from "@/integrations/supabase/client"; // Removed
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -33,25 +34,15 @@ export default function AssignedListings({ isAdmin = false }: AssignedListingsPr
   const loadAssignedListings = async () => {
     setLoading(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      let url = 'http://localhost:5000/api/listings?verificationStatus=assigned';
+      let url = '/listings?verificationStatus=assigned';
 
       if (!isAdmin && user) {
         url += `&assignedBroker=${user.id}`;
-      } else if (isAdmin) {
-        // Admin sees all assigned listings
-        // Could also allow admin to filter by specific broker if needed later
       }
 
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error("Failed to fetch listings");
-      const data = await response.json();
-
-      setListings(data || []);
-      setFilteredListings(data || []);
+      const response = await api.get(url);
+      setListings(response.data || []);
+      setFilteredListings(response.data || []);
     } catch (error) {
       console.error(error);
       toast.error("Failed to load assigned listings");
@@ -79,18 +70,7 @@ export default function AssignedListings({ isAdmin = false }: AssignedListingsPr
 
   const handleVerify = async (listingId: string, status: "approved" | "rejected") => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch(`http://localhost:5000/api/listings/${listingId}/verify`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
-      });
-
-      if (!response.ok) throw new Error("Failed to update status");
-
+      await api.put(`/listings/${listingId}/verify`, { status });
       toast.success(`Listing ${status} successfully`);
       loadAssignedListings();
     } catch (error: any) {

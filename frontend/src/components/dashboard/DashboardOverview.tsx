@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 // Supabase import removed
 import StatCard from "./StatCard";
 import { Building, Users, MessageSquare, TrendingUp, FileCheck, Shield } from "lucide-react";
@@ -47,15 +48,10 @@ export default function DashboardOverview({ userRole, onNavigate }: DashboardOve
     if (!user) return;
 
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/users/stats', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/users/stats');
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
 
         if (userRole === "admin") {
           setStats({
@@ -97,14 +93,12 @@ export default function DashboardOverview({ userRole, onNavigate }: DashboardOve
         }
         // Fetch public metrics to populate percent-change and commission deltas
         try {
-          const metricsRes = await fetch('http://localhost:5000/api/public/metrics');
-          if (metricsRes.ok) {
-            const metrics = await metricsRes.json();
-            // attach to state for use in UI (we'll store in a top-level property)
-            setStats(prev => ({ ...prev, metrics }));
+          const metricsRes = await api.get('/public/metrics');
+          if (metricsRes.status === 200) {
+            setStats(prev => ({ ...prev, metrics: metricsRes.data }));
           }
         } catch (e) {
-          console.error('Failed to load public metrics', e);
+          console.error("Error fetching metrics:", e);
         }
       }
     } catch (error) {
@@ -314,12 +308,12 @@ export default function DashboardOverview({ userRole, onNavigate }: DashboardOve
                 const Icon = getActivityIcon(activity.type);
                 const colorClass = getActivityColor(activity.type);
                 return (
-                  <div key={idx} className="flex items-start gap-3">
+                  <div key={activity._id || activity.id || idx} className="flex items-start gap-3">
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
                       <Icon className="w-5 h-5" />
                     </div>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{activity.text}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium break-words whitespace-pre-wrap">{activity.text}</p>
                       <p className="text-xs text-muted-foreground">{formatTimeAgo(activity.time)}</p>
                     </div>
                   </div>

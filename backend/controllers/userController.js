@@ -33,7 +33,7 @@ const upload = multer({
 }).single("avatar");
 
 function checkFileType(file, cb) {
-  const filetypes = /jpeg|jpg|png|gif/;
+  const filetypes = /jpeg|jpg|png|gif|webp/;
   const extname = filetypes.test(path.extname(file.originalname).toLowerCase());
   const mimetype = filetypes.test(file.mimetype);
 
@@ -68,11 +68,12 @@ const updateProfile = async (req, res) => {
         fullName: updatedUser.fullName,
         email: updatedUser.email,
         role: updatedUser.role,
-        token: req.token, // Might need to handle token refresh if needed, usually not for profile
         avatar: updatedUser.avatar,
         bio: updatedUser.bio,
         phone: updatedUser.phone,
         location: updatedUser.location,
+        settings: updatedUser.settings,
+        token: req.token, // Might need to handle token refresh if needed, usually not for profile
       });
     } else {
       res.status(404).json({ message: "User not found" });
@@ -124,7 +125,18 @@ const uploadAvatar = (req, res) => {
 
           res.json({
             message: "File Uploaded!",
-            avatarUrl: avatarUrl,
+            avatar: avatarUrl,
+            user: {
+              _id: user._id,
+              fullName: user.fullName,
+              email: user.email,
+              role: user.role,
+              avatar: avatarUrl,
+              bio: user.bio,
+              phone: user.phone,
+              location: user.location,
+              settings: user.settings
+            }
           });
         } catch (error) {
           res.status(500).json({ message: "Server Error" });

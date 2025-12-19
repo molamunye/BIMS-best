@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import api from "@/lib/api";
 // import { supabase } from "@/integrations/supabase/client"; // Removed
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,11 +26,9 @@ export default function ApprovedListings() {
     setLoading(true);
     try {
       // Only show approved listings that have been paid
-      const response = await fetch('http://localhost:5000/api/listings?verificationStatus=approved&status=active');
-      if (!response.ok) throw new Error("Failed to fetch listings");
-      const data = await response.json();
-      setListings(data || []);
-      setFilteredListings(data || []);
+      const response = await api.get('/listings?verificationStatus=approved&status=active');
+      setListings(response.data || []);
+      setFilteredListings(response.data || []);
     } catch (error) {
       console.error(error);
       toast.error("Failed to load approved listings");
