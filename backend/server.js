@@ -41,7 +41,12 @@ app.use("/api/public", require("./routes/publicRoutes"));
 
 const PORT = process.env.PORT || 5000;
 
-// ✅ Use PORT variable and bind to 0.0.0.0 so mobile devices can connect
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on http://0.0.0.0:${PORT}`);
-});
+// ✅ Only start the server if we're not running in a serverless environment (like Vercel)
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running on http://0.0.0.0:${PORT}`);
+  });
+}
+
+// Export the app for Vercel
+module.exports = app;
