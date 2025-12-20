@@ -1,12 +1,10 @@
 import axios from 'axios';
 
-// Use VITE_API_URL if available (for Vercel or local dev with .env)
-// Otherwise fallback to your live Vercel backend URL
+// Use VITE_API_URL if available (e.g., local dev or if you switch to Vercel later)
+// Otherwise default to your live Vercel backend
 const API_URL = import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`  // Remove trailing slash if present
-    : 'https://bims-best-c5mz.vercel.app/api';  // ← CHANGE THIS TO YOUR ACTUAL VERCEL BACKEND URL
-
-////http://localhost:5000/api 
+    ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
+    : 'https://bims-best-c5mz.vercel.app/api';  // ← PUT YOUR EXACT VERCEL BACKEND URL HERE
 
 export const api = axios.create({
     baseURL: API_URL,
@@ -26,14 +24,12 @@ api.interceptors.request.use(
                     config.headers.Authorization = `Bearer ${token}`;
                 }
             } catch (error) {
-                console.error('Failed to parse user from localStorage', error);
+                console.error('Failed to parse user token', error);
             }
         }
         return config;
     },
-    (error) => {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 export default api;
