@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 // import { supabase } from "@/integrations/supabase/client"; // Removed
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,14 +20,11 @@ export default function MyListings() {
 
   const loadMyListings = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch(`http://localhost:5000/api/listings?owner=${user?.id}`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await api.get(`/listings?owner=${user?.id}`);
 
-      if (!response.ok) throw new Error("Failed to fetch listings");
+      if (response.status !== 200) throw new Error("Failed to fetch listings");
 
-      const data = await response.json();
+      const data = response.data;
       setListings(data || []);
     } catch (error) {
       console.error(error);

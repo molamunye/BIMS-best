@@ -21,6 +21,7 @@ import SystemAlerts from "@/components/dashboard/SystemAlerts";
 import ListingVerification from "@/components/dashboard/ListingVerification";
 import AssignedListings from "@/components/dashboard/AssignedListings";
 import CommissionsManagement from "@/components/dashboard/CommissionsManagement";
+import SettingsPanel from "@/components/dashboard/SettingsPanel";
 
 export default function AdminDashboard() {
   const { user, signOut, loading } = useAuth();
@@ -29,13 +30,13 @@ export default function AdminDashboard() {
   const [userName, setUserName] = useState<string>("");
   const [avatarUrl, setAvatarUrl] = useState<string>("");
   const [refreshing, setRefreshing] = useState(false);
-  
+
   useEffect(() => {
     if (!loading && !user) {
       navigate("/auth");
     }
   }, [user, loading, navigate]);
-  
+
   useEffect(() => {
     if (user) {
       setUserName(user.fullName || "");
@@ -46,24 +47,24 @@ export default function AdminDashboard() {
       }
     }
   }, [user, navigate]);
-  
-  
+
+
   const handleRefresh = async () => {
     setRefreshing(true);
     // await loadUserProfile();
     setTimeout(() => setRefreshing(false), 500);
   };
-  
+
   const handleAvatarChange = (url: string) => {
     setAvatarUrl(url);
   };
-  
+
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
   }
-  
+
   if (!user) return null;
-  
+
   const renderContent = () => {
     switch (activeTab) {
       case "listings":
@@ -90,6 +91,8 @@ export default function AdminDashboard() {
         return <AssignedListings isAdmin={true} />;
       case "commissions":
         return <CommissionsManagement />;
+      case "settings":
+        return <SettingsPanel />;
       default:
         return <DashboardOverview userRole="admin" onNavigate={setActiveTab} />;
     }

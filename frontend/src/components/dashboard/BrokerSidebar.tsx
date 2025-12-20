@@ -1,7 +1,8 @@
 import { cn } from "@/lib/utils";
-import { Building2, LayoutDashboard, List, Search, MessageSquare, DollarSign, Plus, BarChart3, FileCheck, Settings, LogOut } from "lucide-react";
+import { Building2, LayoutDashboard, List, Search, MessageSquare, DollarSign, Plus, BarChart3, FileCheck, Settings, LogOut, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import api from "@/lib/api";
 
 interface BrokerSidebarProps {
   userRole: string;
@@ -29,15 +30,10 @@ export default function BrokerSidebar({ userRole, activeTab, onTabChange, onSign
 
   const fetchStats = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      if (!token) return;
+      const response = await api.get('/users/stats');
 
-      const response = await fetch('http://localhost:5000/api/users/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         setStats({
           unreadMessages: data.unreadMessages || 0,
           pendingTasks: data.pendingTasks || 0
@@ -59,7 +55,7 @@ export default function BrokerSidebar({ userRole, activeTab, onTabChange, onSign
     { id: "commissions", label: "Commissions", icon: DollarSign },
     { id: "add-listing", label: "Add Listing", icon: Plus },
     { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "profile", label: "Settings", icon: Settings },
+    { id: "profile", label: "Profile", icon: User },
   ];
 
   return (
@@ -107,7 +103,16 @@ export default function BrokerSidebar({ userRole, activeTab, onTabChange, onSign
       </nav>
 
       {/* Footer */}
-      <div className="p-4 border-t border-sidebar-border">
+      <div className="p-4 border-t border-sidebar-border space-y-2">
+        <Button
+          variant="ghost"
+          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+          size="sm"
+          onClick={() => onTabChange("settings")}
+        >
+          <Settings className="w-4 h-4 mr-3" />
+          Settings
+        </Button>
         <Button
           variant="ghost"
           className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"

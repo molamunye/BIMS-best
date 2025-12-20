@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 
 export default function SettingsPanel() {
   const { user } = useAuth();
@@ -24,15 +25,10 @@ export default function SettingsPanel() {
   const loadSettings = async () => {
     if (!user) return;
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/auth/me', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/auth/me');
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         if (data.settings) {
           setSettings(data.settings);
         }
@@ -47,17 +43,9 @@ export default function SettingsPanel() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/users/settings', {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(settings)
-      });
+      const response = await api.put('/users/settings', settings);
 
-      if (!response.ok) throw new Error('Failed to save settings');
+      if (response.status !== 200) throw new Error('Failed to save settings');
 
       toast.success("Settings saved successfully");
     } catch (error) {

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
 export default function BrokerVerification() {
   const { user } = useAuth();
@@ -25,13 +26,10 @@ export default function BrokerVerification() {
   const loadVerification = async () => {
     if (!user) return;
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/brokers/request/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await api.get('/brokers/request/me');
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         if (data) {
           setVerification(data);
           setFormData({
@@ -53,18 +51,10 @@ export default function BrokerVerification() {
 
     setSubmitting(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/brokers/request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
+      const response = await api.post('/brokers/request', formData);
 
-      if (!response.ok) {
-        const errorData = await response.json();
+      if (response.status !== 200 && response.status !== 201) {
+        const errorData = response.data;
         throw new Error(errorData.message || "Failed to submit verification");
       }
 

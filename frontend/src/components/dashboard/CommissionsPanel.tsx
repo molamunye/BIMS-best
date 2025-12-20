@@ -4,6 +4,7 @@ import { DollarSign, TrendingUp, Calendar, CreditCard } from "lucide-react";
 import StatCard from "./StatCard";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import api from "@/lib/api";
 
 interface Commission {
   _id: string;
@@ -25,16 +26,10 @@ export default function CommissionsPanel() {
   const fetchCommissions = async () => {
     setLoading(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      if (!token) return;
+      const response = await api.get('/commissions');
 
-      const response = await fetch('http://localhost:5000/api/commissions', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setCommissions(data);
+      if (response.status === 200) {
+        setCommissions(response.data);
       }
     } catch (error) {
       console.error("Failed to fetch commissions", error);
@@ -52,16 +47,10 @@ export default function CommissionsPanel() {
   const handlePayout = async () => {
     setPayoutLoading(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      if (!token) return;
+      const response = await api.post('/commissions/payout');
 
-      const response = await fetch('http://localhost:5000/api/commissions/payout', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         if (data.checkout_url) {
           window.location.href = data.checkout_url;
         }
@@ -109,13 +98,13 @@ export default function CommissionsPanel() {
         <StatCard
           title="This Month"
           value={`$${commissions
-              .filter(c => {
-                const d = new Date(c.createdAt);
-                const now = new Date();
-                return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && c.status === 'paid';
-              })
-              .reduce((acc, c) => acc + c.amount, 0)
-              .toFixed(2)
+            .filter(c => {
+              const d = new Date(c.createdAt);
+              const now = new Date();
+              return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear() && c.status === 'paid';
+            })
+            .reduce((acc, c) => acc + c.amount, 0)
+            .toFixed(2)
             }`}
           change="Real-time"
           trend="up"

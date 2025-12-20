@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { Building2, LayoutDashboard, List, MessageSquare, User, Shield, FileCheck, Bell, Settings, LogOut, PlusCircle, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import api from "@/lib/api";
 
 interface SidebarProps {
   userRole: string;
@@ -36,15 +37,10 @@ export default function Sidebar({ userRole, activeTab, onTabChange, onSignOut, u
 
   const fetchStats = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      if (!token) return;
+      const response = await api.get('/users/stats');
 
-      const response = await fetch('http://localhost:5000/api/users/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         setUnreadMessages(data.unreadMessages || 0);
         // Map available fields into a compact stats object for the sidebar
         setStatsState({
@@ -97,32 +93,32 @@ export default function Sidebar({ userRole, activeTab, onTabChange, onSignOut, u
       {/* Compact Metrics for dashboards (DB-driven) - hide for clients */}
       {userRole !== 'client' && (
         <div className="px-4 py-3 border-b border-sidebar-border bg-muted/30">
-        <div className="grid grid-cols-1 gap-3">
-          <div>
-            <div className="text-xs text-muted-foreground">Active Listings</div>
-            <div className="text-sm font-bold">{loadingStatsSidebar ? '...' : stats.activeListings ?? 0}</div>
-            <div className="text-xs text-muted-foreground">{loadingStatsSidebar ? '' : `${stats.activeLast30 ?? 0} new · ${stats.activeChangePct ?? 0}% from last month`}</div>
-          </div>
+          <div className="grid grid-cols-1 gap-3">
+            <div>
+              <div className="text-xs text-muted-foreground">Active Listings</div>
+              <div className="text-sm font-bold">{loadingStatsSidebar ? '...' : stats.activeListings ?? 0}</div>
+              <div className="text-xs text-muted-foreground">{loadingStatsSidebar ? '' : `${stats.activeLast30 ?? 0} new · ${stats.activeChangePct ?? 0}% from last month`}</div>
+            </div>
 
-          <div>
-            <div className="text-xs text-muted-foreground">Total Users</div>
-            <div className="text-sm font-bold">{loadingStatsSidebar ? '...' : stats.totalUsers ?? 0}</div>
-            <div className="text-xs text-muted-foreground">Total registered clients: {loadingStatsSidebar ? '...' : stats.totalClients ?? 0}</div>
-          </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Total Users</div>
+              <div className="text-sm font-bold">{loadingStatsSidebar ? '...' : stats.totalUsers ?? 0}</div>
+              <div className="text-xs text-muted-foreground">Total registered clients: {loadingStatsSidebar ? '...' : stats.totalClients ?? 0}</div>
+            </div>
 
-          <div>
-            <div className="text-xs text-muted-foreground">Commissions</div>
-            <div className="text-sm font-bold">{loadingStatsSidebar ? '...' : new Intl.NumberFormat('en-ET', { style: 'currency', currency: 'ETB', maximumFractionDigits: 0 }).format(stats.commissions ?? 0)}</div>
-            <div className="text-xs text-muted-foreground">{loadingStatsSidebar ? '' : `${stats.commissionChangePct ?? 0}% from last month`}</div>
-          </div>
+            <div>
+              <div className="text-xs text-muted-foreground">Commissions</div>
+              <div className="text-sm font-bold">{loadingStatsSidebar ? '...' : new Intl.NumberFormat('en-ET', { style: 'currency', currency: 'ETB', maximumFractionDigits: 0 }).format(stats.commissions ?? 0)}</div>
+              <div className="text-xs text-muted-foreground">{loadingStatsSidebar ? '' : `${stats.commissionChangePct ?? 0}% from last month`}</div>
+            </div>
 
-          <div>
-            <div className="text-xs text-muted-foreground">Growth</div>
-            <div className="text-sm font-bold">{loadingStatsSidebar ? '...' : `${stats.growthPct ?? 0}%`}</div>
-            <div className="text-xs text-muted-foreground">{loadingStatsSidebar ? '' : `+${stats.activeChangePct ?? 0}% from last month`}</div>
+            <div>
+              <div className="text-xs text-muted-foreground">Growth</div>
+              <div className="text-sm font-bold">{loadingStatsSidebar ? '...' : `${stats.growthPct ?? 0}%`}</div>
+              <div className="text-xs text-muted-foreground">{loadingStatsSidebar ? '' : `+${stats.activeChangePct ?? 0}% from last month`}</div>
+            </div>
           </div>
         </div>
-      </div>
       )}
 
       {/* User Info */}

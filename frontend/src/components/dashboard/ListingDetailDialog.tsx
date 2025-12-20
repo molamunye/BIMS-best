@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,18 +43,10 @@ export default function ListingDetailDialog({
     setLoading(true);
     try {
       // Use API instead of Supabase
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      // Note: Endpoint needs to be added to backend routes! 
-      // Assuming GET /api/listings/:id exists now
-      const response = await fetch(`http://localhost:5000/api/listings/${listingId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get(`/listings/${listingId}`);
 
-      if (response.ok) {
-        const data = await response.json();
-        setListing(data);
+      if (response.status === 200) {
+        setListing(response.data);
       }
     } catch (error) {
       console.error("Failed to load listing", error);
@@ -65,6 +59,10 @@ export default function ListingDetailDialog({
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Loading Listing</DialogTitle>
+            <DialogDescription>Please wait while we fetch the listing details.</DialogDescription>
+          </DialogHeader>
           <div className="flex items-center justify-center p-8">
             Loading...
           </div>
@@ -80,6 +78,9 @@ export default function ListingDetailDialog({
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-2xl">{listing.title}</DialogTitle>
+          <DialogDescription>
+            Detailed information about {listing.title}.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">

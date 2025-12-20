@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Users, FileCheck, Building2 } from "lucide-react";
+import api from "@/lib/api";
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<any[]>([]);
@@ -20,20 +21,18 @@ export default function AdminPanel() {
 
   const loadData = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-
       const [usersRes, statsRes, requestsRes] = await Promise.all([
-        fetch('http://localhost:5000/api/users', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:5000/api/users/stats', { headers: { 'Authorization': `Bearer ${token}` } }),
-        fetch('http://localhost:5000/api/brokers/requests', { headers: { 'Authorization': `Bearer ${token}` } }),
+        api.get('/users'),
+        api.get('/users/stats'),
+        api.get('/brokers/requests'),
       ]);
 
-      if (usersRes.ok) {
-        setUsers(await usersRes.json());
+      if (usersRes.status === 200) {
+        setUsers(usersRes.data);
       }
 
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
+      if (statsRes.status === 200) {
+        const statsData = statsRes.data;
         setStats({
           users: statsData.totalUsers || 0,
           brokers: statsData.totalBrokers || 0,
@@ -41,8 +40,8 @@ export default function AdminPanel() {
         });
       }
 
-      if (requestsRes.ok) {
-        const requestsData = await requestsRes.json();
+      if (requestsRes.status === 200) {
+        const requestsData = requestsRes.data;
         // Filter only pending requests
         if (Array.isArray(requestsData)) {
           setVerifications(requestsData.filter((r: any) => r.status === 'pending'));
@@ -59,17 +58,9 @@ export default function AdminPanel() {
 
   const updateUserRole = async (userId: string, newRole: "admin" | "broker" | "client") => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch(`http://localhost:5000/api/users/${userId}/role`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ role: newRole })
-      });
+      const response = await api.put(`/users/${userId}/role`, { role: newRole });
 
-      if (!response.ok) throw new Error("Failed to update role");
+      if (response.status !== 200) throw new Error("Failed to update role");
 
       toast.success("User role updated");
       loadData();
@@ -81,17 +72,9 @@ export default function AdminPanel() {
 
   const handleVerification = async (verificationId: string, status: "approved" | "rejected") => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch(`http://localhost:5000/api/brokers/requests/${verificationId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ status })
-      });
+      const response = await api.put(`/brokers/requests/${verificationId}`, { status });
 
-      if (!response.ok) throw new Error("Failed to update request");
+      if (response.status !== 200) throw new Error("Failed to update request");
 
       toast.success(`Request ${status}`);
       loadData();

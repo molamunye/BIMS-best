@@ -21,6 +21,7 @@ import BrokerVerificationTasks from "@/components/dashboard/BrokerVerificationTa
 import ApprovedListings from "@/components/dashboard/ApprovedListings";
 import AnalyticsPanel from "@/components/dashboard/AnalyticsPanel";
 import VerificationTaskNote from "@/components/dashboard/VerificationTaskNote";
+import SettingsPanel from "@/components/dashboard/SettingsPanel";
 
 export default function BrokerDashboard() {
   const { user, signOut, loading } = useAuth();
@@ -89,6 +90,8 @@ export default function BrokerDashboard() {
         return <AnalyticsPanel />;
       case "verification-note":
         return <VerificationTaskNote />;
+      case "settings":
+        return <SettingsPanel />;
       default:
         return <DashboardOverview userRole="broker" onNavigate={setActiveTab} />;
     }
@@ -165,7 +168,7 @@ export default function BrokerDashboard() {
       </div>
 
       {/* Right Sidebar - Verification Notes (hidden on small screens) */}
-      
+
     </div>
   );
 }

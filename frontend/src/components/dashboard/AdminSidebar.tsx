@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Shield, LayoutDashboard, Users, Building2, DollarSign, BarChart3, FileCheck, AlertTriangle, Lock, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import api from "@/lib/api";
 
 interface AdminSidebarProps {
   userRole?: string;
@@ -25,15 +26,10 @@ export default function AdminSidebar({ activeTab, onTabChange, onSignOut }: Admi
 
   const checkPendingRequests = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      if (!token) return;
+      const response = await api.get('/users/stats');
 
-      const response = await fetch('http://localhost:5000/api/users/stats', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         setStats({
           pendingRequests: data.pendingBrokers || 0,
           unreadMessages: data.unreadMessages || 0
@@ -124,6 +120,7 @@ export default function AdminSidebar({ activeTab, onTabChange, onSignOut }: Admi
           variant="ghost"
           className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
           size="sm"
+          onClick={() => onTabChange("settings")}
         >
           <Settings className="w-4 h-4 mr-3" />
           Settings

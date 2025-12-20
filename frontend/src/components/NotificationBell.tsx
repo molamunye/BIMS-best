@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -40,15 +41,10 @@ export default function NotificationBell() {
     if (!user) return;
 
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/notifications', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get('/notifications');
 
-      if (response.ok) {
-        const data = await response.json();
+      if (response.status === 200) {
+        const data = response.data;
         setNotifications(data);
         setUnreadCount(data.filter((n: Notification) => !n.isRead).length);
       }
@@ -58,14 +54,7 @@ export default function NotificationBell() {
   };
 
   const markAsRead = async (notificationId: string) => {
-    const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-
-    await fetch(`http://localhost:5000/api/notifications/${notificationId}/read`, {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    await api.put(`/notifications/${notificationId}/read`);
 
     setNotifications((prev) =>
       prev.map((n) => (n._id === notificationId ? { ...n, isRead: true } : n))
@@ -75,14 +64,7 @@ export default function NotificationBell() {
 
   const markAllAsRead = async () => {
     if (!user) return;
-    const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-
-    await fetch('http://localhost:5000/api/notifications/read-all', {
-      method: 'PUT',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
+    await api.put('/notifications/read-all');
 
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
     setUnreadCount(0);

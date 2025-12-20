@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import api from "@/lib/api";
 // import { supabase } from "@/integrations/supabase/client"; // Removed
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -23,14 +24,11 @@ export default function UserManagement() {
 
   const loadUsers = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/users', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
+      const response = await api.get('/users');
 
-      if (!response.ok) throw new Error("Failed to fetch users");
+      if (response.status !== 200) throw new Error("Failed to fetch users");
 
-      const data = await response.json();
+      const data = response.data;
       setUsers(data || []);
       setFilteredUsers(data || []);
     } catch (error) {

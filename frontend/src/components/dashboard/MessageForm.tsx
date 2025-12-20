@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import api from "@/lib/api";
 // Supabase import removed
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -23,21 +24,13 @@ export default function MessageForm({ recipientId, listingId, onSuccess }: Messa
     setSending(true);
 
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          recipientId,
-          listingId,
-          content: content.trim()
-        })
+      const response = await api.post('/messages', {
+        recipientId,
+        listingId,
+        content: content.trim()
       });
 
-      if (!response.ok) {
+      if (response.status !== 201 && response.status !== 200) {
         throw new Error('Failed to send message');
       }
 

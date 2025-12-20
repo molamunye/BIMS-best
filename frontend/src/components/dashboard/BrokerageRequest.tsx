@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import api from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
 // import { supabase } from "@/integrations/supabase/client"; // Removed
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,13 +27,9 @@ export default function BrokerageRequest() {
 
   const checkExistingRequest = async () => {
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/brokers/request/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setExistingRequest(data);
+      const response = await api.get('/brokers/request/me');
+      if (response.status === 200) {
+        setExistingRequest(response.data);
       }
     } catch (error) {
       console.error("Failed to check request", error);
@@ -45,21 +42,13 @@ export default function BrokerageRequest() {
 
     setLoading(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const response = await fetch('http://localhost:5000/api/brokers/request', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          businessName: formData.business_name,
-          licenseNumber: formData.license_number
-        })
+      const response = await api.post('/brokers/request', {
+        businessName: formData.business_name,
+        licenseNumber: formData.license_number
       });
 
-      if (!response.ok) {
-        const err = await response.json();
+      if (response.status !== 200 && response.status !== 201) {
+        const err = response.data;
         throw new Error(err.message || "Failed to submit");
       }
 

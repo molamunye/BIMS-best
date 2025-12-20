@@ -151,7 +151,7 @@ const uploadAvatar = (req, res) => {
 // @access  Private
 const getDashboardStats = async (req, res) => {
   try {
-    const { role, id } = req.user;
+    const { role, _id: id } = req.user;
     let stats = {};
 
     if (role === "admin") {
@@ -267,7 +267,6 @@ const getDashboardStats = async (req, res) => {
         // Platform-level totals for dashboard cards - only paid and approved
         platformActiveListings: await Listing.countDocuments({
           status: "active",
-          paymentStatus: "paid",
           verificationStatus: "approved",
         }),
         totalUsers: totalUsers,
@@ -467,20 +466,17 @@ const getPublicMetrics = async (req, res) => {
     // Active listings overall - only count paid and approved listings
     const activeListings = await Listing.countDocuments({
       status: "active",
-      paymentStatus: "paid",
       verificationStatus: "approved"
     });
 
     // New active listings in last 30 days and previous 30-day window
     const activeLast30 = await Listing.countDocuments({
       status: "active",
-      paymentStatus: "paid",
       verificationStatus: "approved",
       createdAt: { $gte: day30 },
     });
     const activePrev30 = await Listing.countDocuments({
       status: "active",
-      paymentStatus: "paid",
       verificationStatus: "approved",
       createdAt: { $gte: day60, $lt: day30 },
     });

@@ -6,12 +6,13 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Filter, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import ListingForm from "./ListingForm";
 import ListingCard from "./ListingCard";
 import { toast } from "sonner";
+import api from "@/lib/api";
 
 interface ListingsManagerProps {
   userRole: string;
@@ -45,32 +46,27 @@ export default function ListingsManager({ userRole, showAll }: ListingsManagerPr
 
     setLoading(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      // Construct query params
-      let url = 'http://localhost:5000/api/listings?';
+      // Construct endpoint
+      let endpoint = '/listings?';
 
       if (showAll) {
         // Force "Browse" mode: show all active and approved listings
         // Backend handles refined payment status visibility
-        url += 'status=active&verificationStatus=approved';
+        endpoint += 'status=active&verificationStatus=approved';
       } else if (userRole === 'broker') {
-        url += `owner=${user.id}`;
+        endpoint += `owner=${user.id}`;
       } else if (userRole === 'client') {
         // Client browsing: show all active and approved listings
-        url += 'status=active&verificationStatus=approved';
+        endpoint += 'status=active&verificationStatus=approved';
       } else if (userRole === "admin") {
-        url = 'http://localhost:5000/api/listings';
+        endpoint = '/listings';
       }
 
-      const response = await fetch(url, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
+      const response = await api.get(endpoint);
 
-      if (!response.ok) throw new Error("Failed to fetch");
+      if (response.status !== 200) throw new Error("Failed to fetch");
 
-      const data = await response.json();
+      const data = response.data;
       setListings(data || []);
       setFilteredListings(data || []);
 
@@ -172,6 +168,7 @@ export default function ListingsManager({ userRole, showAll }: ListingsManagerPr
               <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Create New Listing</DialogTitle>
+                  <DialogDescription>Enter the details of your property or vehicle to list it on the platform.</DialogDescription>
                 </DialogHeader>
                 <ListingForm onSuccess={handleListingCreated} />
               </DialogContent>

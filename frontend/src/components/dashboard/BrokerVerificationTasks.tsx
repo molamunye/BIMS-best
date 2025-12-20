@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { CheckCircle, XCircle, Loader2, FileText, ExternalLink, MapPin, Image as ImageIcon } from "lucide-react";
+import api from "@/lib/api";
 import { formatETB } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
@@ -46,16 +47,11 @@ export default function BrokerVerificationTasks() {
   const loadAssignedListings = async () => {
     setLoading(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const headers = { 'Authorization': `Bearer ${token}` };
-
       // Fetch: verificationStatus=assigned AND assignedBroker=me
-      // Backend `getListings` supports filtering.
-      // Also need to support `assignedBroker` filter (we added it).
-      const url = `http://localhost:5000/api/listings?verificationStatus=assigned&assignedBroker=${user?.id}`;
+      const endpoint = `/listings?verificationStatus=assigned&assignedBroker=${user?.id}`;
 
-      const response = await fetch(url, { headers });
-      const data = await response.json();
+      const response = await api.get(endpoint);
+      const data = response.data;
 
       // Map backend to frontend interface
       const mappedListings = (data || []).map((l: any) => ({
@@ -92,32 +88,19 @@ export default function BrokerVerificationTasks() {
     }
 
     setSubmitting(true);
-    const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-
     // API: PUT /api/listings/:id/verify
     try {
-      const response = await fetch(`http://localhost:5000/api/listings/${listing.id}/verify`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          status,
-          notes: notes.trim()
-        })
+      const response = await api.put(`/listings/${listing.id}/verify`, {
+        status,
+        notes: notes.trim()
       });
 
-      if (!response.ok) throw new Error("Failed to verify");
+      if (response.status !== 200) throw new Error("Failed to verify");
 
       // After successful verification, also save a verification note to the sidebar list
       try {
-        const noteRes = await fetch('http://localhost:5000/api/verification-notes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-          body: JSON.stringify({ listingId: listing.id, listingTitle: listing.title, note: notes.trim() || `${status}` })
-        });
-        if (noteRes.ok) {
+        const noteRes = await api.post('/verification-notes', { listingId: listing.id, listingTitle: listing.title, note: notes.trim() || `${status}` });
+        if (noteRes.status === 201 || noteRes.status === 200) {
           // notify other components (sidebar) to reload
           window.dispatchEvent(new CustomEvent('verificationNotesUpdated'));
         }
@@ -194,10 +177,10 @@ export default function BrokerVerificationTasks() {
 
                 <Dialog>
                   <DialogTrigger asChild>
-                        <Button
-                          className="w-full"
-                          onClick={() => setSelectedListing(listing)}
-                        >
+                    <Button
+                      className="w-full"
+                      onClick={() => setSelectedListing(listing)}
+                    >
                       Review & Verify
                     </Button>
                   </DialogTrigger>

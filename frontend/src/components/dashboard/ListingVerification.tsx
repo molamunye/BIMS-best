@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import api from "@/lib/api";
 
 interface Listing {
   id: string;
@@ -49,17 +50,13 @@ export default function ListingVerification() {
 
   const loadData = async () => {
     setLoading(true);
-
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const headers = { 'Authorization': `Bearer ${token}` };
-
       // Helper to fetch and return array or empty array
       const fetchArray = async (url: string) => {
         try {
-          const res = await fetch(url, { headers });
-          if (!res.ok) return [];
-          const data = await res.json();
+          const res = await api.get(url);
+          if (res.status !== 200) return [];
+          const data = res.data;
           return Array.isArray(data) ? data : [];
         } catch (e) {
           console.error(`Error fetching ${url}:`, e);
@@ -69,22 +66,15 @@ export default function ListingVerification() {
 
       // Load data in parallel
       const [pendingData, assignedData, approvedData, brokersData] = await Promise.all([
-        fetchArray('http://localhost:5000/api/listings?pendingVerification=true'),
-        fetchArray('http://localhost:5000/api/listings?verificationStatus=assigned'),
-        fetchArray('http://localhost:5000/api/listings?status=active'),
-        fetchArray('http://localhost:5000/api/brokers')
+        fetchArray('/listings?pendingVerification=true'),
+        fetchArray('/listings?verificationStatus=assigned'),
+        fetchArray('/listings?status=active'),
+        fetchArray('/brokers')
       ]);
-
-      console.log('Fetched data counts:', {
-        pending: pendingData.length,
-        assigned: assignedData.length,
-        approved: approvedData.length,
-        brokers: brokersData.length
-      });
 
       const mappedBrokers = brokersData.map((b: any) => ({
         id: b._id || b.id,
-        full_name: b.fullName || b.fullName || 'Broker',
+        full_name: b.fullName || 'Broker',
         email: b.email || ''
       }));
 
@@ -117,23 +107,11 @@ export default function ListingVerification() {
   };
 
   const assignBroker = async (listingId: string, brokerId: string) => {
-    console.log(`Assigning broker ${brokerId} to listing ${listingId}`);
-    const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-
     try {
-      const response = await fetch(`http://localhost:5000/api/listings/${listingId}/assign`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ brokerId })
-      });
+      const response = await api.put(`/listings/${listingId}/assign`, { brokerId });
 
-      const data = await response.json();
-      if (!response.ok) {
-        console.error('Assignment failed:', data);
-        toast.error(data.message || "Failed to assign broker");
+      if (response.status !== 200) {
+        toast.error(response.data.message || "Failed to assign broker");
         return;
       }
 
@@ -149,13 +127,8 @@ export default function ListingVerification() {
     const text = window.prompt(`Write verification note for "${listing.title}"`, "");
     if (!text || !text.trim()) return;
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      const res = await fetch('http://localhost:5000/api/verification-notes', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-        body: JSON.stringify({ listingId: listing.id, listingTitle: listing.title, note: text.trim() })
-      });
-      if (!res.ok) throw new Error('Failed to save note');
+      const res = await api.post('/verification-notes', { listingId: listing.id, listingTitle: listing.title, note: text.trim() });
+      if (res.status !== 201 && res.status !== 200) throw new Error('Failed to save note');
       toast.success('Note saved');
       window.dispatchEvent(new CustomEvent('verificationNotesUpdated'));
     } catch (error) {

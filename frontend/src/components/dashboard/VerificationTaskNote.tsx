@@ -4,6 +4,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { Trash2 } from 'lucide-react';
+import api from '@/lib/api';
 
 interface VerificationNote {
   _id: string;
@@ -25,16 +26,10 @@ export default function VerificationTaskNote() {
   const fetchNotes = async () => {
     setIsLoading(true);
     try {
-      const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-      if (!token) return;
+      const response = await api.get('/verification-notes');
 
-      const response = await fetch('http://localhost:5000/api/verification-notes', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setNotes(data);
+      if (response.status === 200) {
+        setNotes(response.data);
       }
     } catch (error) {
       console.error("Failed to fetch verification notes", error);
@@ -46,50 +41,32 @@ export default function VerificationTaskNote() {
   const handleSaveNote = async () => {
     setIsSaving(true);
     try {
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        if (!token) return;
+      const response = await api.post('/verification-notes', { note });
 
-        const response = await fetch('http://localhost:5000/api/verification-notes', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-            },
-            body: JSON.stringify({ note }),
-        });
-
-        if (response.ok) {
-            setNote('');
-            fetchNotes(); // Refresh notes list
-        } else {
-            console.error("Failed to save note");
-        }
+      if (response.status === 201 || response.status === 200) {
+        setNote('');
+        fetchNotes(); // Refresh notes list
+      } else {
+        console.error("Failed to save note");
+      }
     } catch (error) {
-        console.error("Failed to save note", error);
+      console.error("Failed to save note", error);
     } finally {
-        setIsSaving(false);
+      setIsSaving(false);
     }
   };
 
   const handleDeleteNote = async (id: string) => {
     try {
-        const token = JSON.parse(localStorage.getItem('user') || '{}').token;
-        if (!token) return;
+      const response = await api.delete(`/verification-notes/${id}`);
 
-        const response = await fetch(`http://localhost:5000/api/verification-notes/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-            },
-        });
-
-        if (response.ok) {
-            fetchNotes(); // Refresh notes list
-        } else {
-            console.error("Failed to delete note");
-        }
+      if (response.status === 200) {
+        fetchNotes(); // Refresh notes list
+      } else {
+        console.error("Failed to delete note");
+      }
     } catch (error) {
-        console.error("Failed to delete note", error);
+      console.error("Failed to delete note", error);
     }
   };
 
@@ -133,7 +110,7 @@ export default function VerificationTaskNote() {
                       </p>
                     </div>
                     <Button variant="ghost" size="icon" onClick={() => handleDeleteNote(n._id)}>
-                        <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </CardContent>
                 </Card>

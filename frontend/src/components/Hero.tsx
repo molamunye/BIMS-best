@@ -4,6 +4,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 
+import api from "@/lib/api";
+
 const Hero = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -14,9 +16,9 @@ const Hero = () => {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/public/stats');
-        if (res.ok) {
-          const data = await res.json();
+        const res = await api.get('/public/stats');
+        if (res.status === 200) {
+          const data = res.data;
           setStats({
             activeListings: data.activeListings || 0,
             verifiedBrokers: data.verifiedBrokers || 0,
@@ -50,7 +52,7 @@ const Hero = () => {
       />
       {/* Lighter overlay so background image shows through */}
       <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" aria-hidden />
-      
+
       {/* Animated Shapes */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute top-20 left-10 w-72 h-72 bg-white/5 rounded-full blur-3xl animate-pulse" />
@@ -63,15 +65,15 @@ const Hero = () => {
           Broker Information <br />
           <span className="text-white/95">Management System</span>
         </h1>
-        
+
         <p className="text-xl md:text-2xl text-white/85 mb-8 max-w-3xl mx-auto animate-fade-in-delayed">
           Smart connections for modern brokerage. Find properties and vehicles with trusted brokers in Hossana and beyond.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-delayed-more">
           <Link to="/auth">
-            <Button 
-              size="lg" 
+            <Button
+              size="lg"
               variant="secondary"
               className="text-lg px-8 py-6 bg-white hover:bg-white/90 text-primary shadow-elegant"
             >
