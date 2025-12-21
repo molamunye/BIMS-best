@@ -1,11 +1,29 @@
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
+// Validate Cloudinary configuration
+const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+const apiKey = process.env.CLOUDINARY_API_KEY;
+const apiSecret = process.env.CLOUDINARY_API_SECRET;
+
+if (!cloudName || !apiKey || !apiSecret) {
+  console.error('⚠️  Cloudinary configuration missing!');
+  console.error('Required environment variables:');
+  console.error('  - CLOUDINARY_CLOUD_NAME:', cloudName ? '✓' : '✗');
+  console.error('  - CLOUDINARY_API_KEY:', apiKey ? '✓' : '✗');
+  console.error('  - CLOUDINARY_API_SECRET:', apiSecret ? '✓' : '✗');
+} else {
+  console.log('✓ Cloudinary configured:', {
+    cloud_name: cloudName,
+    api_key: apiKey.substring(0, 5) + '...'
+  });
+}
+
 // Configure Cloudinary
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+  cloud_name: cloudName,
+  api_key: apiKey,
+  api_secret: apiSecret,
 });
 
 // Create storage engine for multer with dynamic resource_type
