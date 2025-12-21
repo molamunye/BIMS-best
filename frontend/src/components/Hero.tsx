@@ -71,20 +71,28 @@ const Hero = () => {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center animate-fade-in-delayed-more">
+          <Link to="/auth?mode=signup">
+            <Button
+              size="lg"
+              className="text-lg px-8 py-6 bg-primary hover:bg-primary/90 text-white shadow-elegant"
+            >
+              Sign Up Now
+            </Button>
+          </Link>
           <Link to="/auth">
             <Button
               size="lg"
-              variant="secondary"
-              className="text-lg px-8 py-6 bg-white hover:bg-white/90 text-primary shadow-elegant"
+              variant="outline"
+              className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-primary transition-all duration-300"
             >
               <Search className="mr-2 h-5 w-5" />
-              Get Started
+              Sign In
             </Button>
           </Link>
           <Button
             size="lg"
-            variant="outline"
-            className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-primary transition-all duration-300"
+            variant="secondary"
+            className="text-lg px-8 py-6 bg-white/90 hover:bg-white text-primary shadow-elegant"
             onClick={handleViewDashboard}
           >
             View Dashboard

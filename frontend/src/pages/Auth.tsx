@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSearchParams } from "react-router-dom";
 // Supabase import removed
 import { toast } from "sonner";
 import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
@@ -12,7 +13,8 @@ interface ValidationErrors {
 }
 
 export default function Auth() {
-  const [isActive, setIsActive] = useState(false);
+  const [searchParams] = useSearchParams();
+  const [isActive, setIsActive] = useState(searchParams.get('mode') === 'signup');
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
