@@ -5,7 +5,8 @@
     "main": "server.js",
     "scripts": {
         "start": "node server.js",
-        "dev": "node server.js"
+        "dev": "node server.js",
+        "verify": "node verify-deployment.js"
     },
     "dependencies": {
         "axios": "^1.13.2",

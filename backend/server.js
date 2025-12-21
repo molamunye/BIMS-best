@@ -24,6 +24,24 @@ app.use(cors());
 // Static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
+// Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
+  });
+});
+
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "BIMS Backend API",
+    version: "1.0.0",
+    status: "running"
+  });
+});
+
+
 // Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/brokers", brokerRoutes);
@@ -41,12 +59,11 @@ app.use("/api/public", require("./routes/publicRoutes"));
 
 const PORT = process.env.PORT || 5000;
 
-// ✅ Only start the server if we're not running in a serverless environment (like Vercel)
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://0.0.0.0:${PORT}`);
-  });
-}
+// Start the server (works for both local development and Render.com)
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server running on http://0.0.0.0:${PORT}`);
+  console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
 
-// Export the app for Vercel
+// Export the app for compatibility
 module.exports = app;
