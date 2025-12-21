@@ -1,10 +1,10 @@
 import axios from 'axios';
 
-// Use VITE_API_URL if available (e.g., local dev or if you switch to Vercel later)
-// Otherwise default to your live Vercel backend
+// Use VITE_API_URL if available (e.g., local dev with .env.local)
+// Otherwise default to your live Render backend
 const API_URL = import.meta.env.VITE_API_URL
     ? `${import.meta.env.VITE_API_URL.replace(/\/$/, '')}/api`
-    : 'https://bims-best-c5mz.vercel.app/api';  // ← PUT YOUR EXACT VERCEL BACKEND URL HERE
+    : 'https://bims-bplus.onrender.com/api';  // ✅ Live Render backend
 
 // Debug: Log the API URL being used (helpful for troubleshooting)
 console.log('🔗 API Base URL:', API_URL);

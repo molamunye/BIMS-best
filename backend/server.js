@@ -22,7 +22,20 @@ connectDB().catch(err => {
 
 // Middleware
 app.use(express.json());
-app.use(cors());
+
+// CORS configuration
+const corsOptions = {
+  origin: [
+    'https://bims-plus-app.onrender.com',  // Production frontend
+    'http://localhost:3000',                // Local development (React default)
+    'http://localhost:5173',                // Local development (Vite default)
+    'http://localhost:8080',                // Local development (custom)
+  ],
+  credentials: true,
+  optionsSuccessStatus: 200
+};
+
+app.use(cors(corsOptions));
 
 // Static files
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
