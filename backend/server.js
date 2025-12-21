@@ -14,8 +14,11 @@ const listingRoutes = require("./routes/listingRoutes");
 
 const app = express();
 
-// Connect Database
-connectDB();
+// Connect Database (non-blocking)
+connectDB().catch(err => {
+  console.error('Failed to connect to database:', err.message);
+  // Server will still run, but database operations will fail
+});
 
 // Middleware
 app.use(express.json());
@@ -26,10 +29,15 @@ app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Health check endpoint
 app.get("/health", (req, res) => {
+  const mongoose = require('mongoose');
+  const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
+
   res.status(200).json({
     status: "OK",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || 'development'
+    environment: process.env.NODE_ENV || 'development',
+    database: dbStatus,
+    port: process.env.PORT || 5000
   });
 });
 
