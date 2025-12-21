@@ -1,25 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Configure storage
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const uploadDir = 'uploads/';
-        // Ensure directory exists
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-        cb(null, uploadDir);
-    },
-    filename: function (req, file, cb) {
-        // Create unique filename: fieldname-timestamp-random.ext
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-        cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
-    }
-});
+const { storage } = require('../config/cloudinary');
 
 // Filter file types
 const fileFilter = (req, file, cb) => {
@@ -46,18 +28,24 @@ router.post('/', upload.single('file'), (req, res) => {
             return res.status(400).json({ message: 'No file uploaded' });
         }
 
-        // Return the URL to access the file
-        // Assuming server serves 'uploads' folder at /uploads
-        const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+        // Cloudinary returns the file object with path/secure_url property
+        // Prefer secure_url for HTTPS, fallback to path
+        const fileUrl = req.file.secure_url || req.file.path || req.file.url;
+
+        if (!fileUrl) {
+            return res.status(500).json({ message: 'Failed to get file URL from Cloudinary' });
+        }
 
         res.status(200).json({
             message: 'File uploaded successfully',
             url: fileUrl,
-            filename: req.file.filename,
-            mimetype: req.file.mimetype
+            filename: req.file.originalname || req.file.filename,
+            mimetype: req.file.mimetype,
+            public_id: req.file.public_id
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Upload error:', error);
+        res.status(500).json({ message: error.message || 'Failed to upload file' });
     }
 });
 
@@ -70,16 +58,27 @@ router.post('/multiple', upload.array('files', 10), (req, res) => {
             return res.status(400).json({ message: 'No files uploaded' });
         }
 
+        // Cloudinary returns file objects with secure_url/path property containing the URL
+        // Prefer secure_url for HTTPS, fallback to path
         const urls = req.files.map(file => {
-            return `${req.protocol}://${req.get('host')}/uploads/${file.filename}`;
-        });
+            const url = file.secure_url || file.path || file.url;
+            if (!url) {
+                console.error('Missing URL for file:', file);
+            }
+            return url;
+        }).filter(url => url); // Filter out any undefined URLs
+
+        if (urls.length === 0) {
+            return res.status(500).json({ message: 'Failed to get file URLs from Cloudinary' });
+        }
 
         res.status(200).json({
             message: 'Files uploaded successfully',
             urls: urls
         });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Multiple upload error:', error);
+        res.status(500).json({ message: error.message || 'Failed to upload files' });
     }
 });
 

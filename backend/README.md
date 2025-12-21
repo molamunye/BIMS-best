@@ -30,7 +30,7 @@ Server will run on `http://localhost:5000`
 - **Framework:** Express.js
 - **Database:** MongoDB (Mongoose ODM)
 - **Authentication:** JWT (jsonwebtoken)
-- **File Upload:** Multer
+- **File Upload:** Multer + Cloudinary
 - **Payment Gateway:** Chapa
 - **Security:** bcryptjs for password hashing
 
@@ -64,6 +64,9 @@ CHAPA_WEBHOOK_SECRET=your_webhook_secret
 BACKEND_URL=https://your-backend-url.com
 FRONTEND_URL=https://your-frontend-url.com
 PORT=5000
+CLOUDINARY_CLOUD_NAME=your_cloudinary_cloud_name
+CLOUDINARY_API_KEY=your_cloudinary_api_key
+CLOUDINARY_API_SECRET=your_cloudinary_api_secret
 ```
 
 ## 📁 Project Structure
@@ -161,13 +164,24 @@ Authorization: Bearer <your_jwt_token>
 
 ## 📤 File Uploads
 
-Files are uploaded to the `uploads/` directory using Multer.
+Files are uploaded to **Cloudinary** using Multer with Cloudinary storage.
 
 **Supported Types:**
 - Images: JPG, PNG, GIF, WebP
 - Documents: PDF
 
-**Important:** On Render's free tier, uploaded files are ephemeral. For production, integrate cloud storage (AWS S3, Cloudinary, etc.)
+**Configuration:**
+- Files are stored in Cloudinary's `bims-uploads` folder
+- Images are automatically optimized (max 1920x1080, auto quality)
+- PDFs are stored as raw files
+- URLs are returned as Cloudinary CDN URLs
+
+**Environment Variables Required:**
+- `CLOUDINARY_CLOUD_NAME`
+- `CLOUDINARY_API_KEY`
+- `CLOUDINARY_API_SECRET`
+
+See [CLOUDINARY_SETUP.md](./CLOUDINARY_SETUP.md) for detailed setup instructions.
 
 ## 🔔 Webhooks
 
