@@ -22,6 +22,7 @@ connectDB().catch(err => {
 
 // Middleware
 app.use(express.json());
+app.use(express.urlencoded({ extended: true })); // For form data
 
 // CORS configuration
 const corsOptions = {

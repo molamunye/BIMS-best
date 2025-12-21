@@ -94,6 +94,12 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
   };
 
   const removeImage = (index: number) => {
+    // Clean up blob URL if it's a local preview
+    const urlToRemove = imagePreviewUrls[index];
+    if (urlToRemove && urlToRemove.startsWith('blob:')) {
+      URL.revokeObjectURL(urlToRemove);
+    }
+    
     setImageFiles(imageFiles.filter((_, i) => i !== index));
     setImagePreviewUrls(imagePreviewUrls.filter((_, i) => i !== index));
   };
@@ -127,7 +133,7 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
     setUploadingImages(true);
     const uploadedUrls: string[] = [];
 
-    // Keep existing URLs
+    // Keep existing URLs (Cloudinary URLs that start with http)
     imagePreviewUrls.forEach(url => {
       if (url.startsWith('http')) {
         uploadedUrls.push(url);
@@ -140,23 +146,44 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
         formData.append('files', file);
       });
 
+      console.log(`Uploading ${imageFiles.length} images...`);
+
       // Use the multiple upload endpoint
-      const response = await api.post('/upload/multiple', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      // Don't set Content-Type header - let browser set it with boundary
+      const response = await api.post('/upload/multiple', formData);
 
-      if (response.status !== 200) {
-        throw new Error('Failed to upload images');
+      console.log('Upload response:', response.data);
+
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(`Upload failed with status ${response.status}`);
       }
 
-      if (response.data.urls) {
+      if (response.data.urls && Array.isArray(response.data.urls)) {
+        console.log(`Successfully uploaded ${response.data.urls.length} images`);
         uploadedUrls.push(...response.data.urls);
+      } else {
+        console.error('Unexpected response format:', response.data);
+        throw new Error('Invalid response format from server');
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Image upload error:', error);
-      toast.error("Failed to upload images");
+      
+      // Show detailed error message
+      const errorMessage = error.response?.data?.message 
+        || error.message 
+        || 'Failed to upload images';
+      
+      console.error('Error details:', {
+        message: errorMessage,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url
+      });
+      
+      toast.error(`Failed to upload images: ${errorMessage}`);
+      
+      // Return existing URLs even if upload failed
+      return uploadedUrls;
     } finally {
       setUploadingImages(false);
     }
@@ -172,21 +199,37 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
       const formData = new FormData();
       formData.append('file', documentFile);
 
-      const response = await api.post('/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
+      console.log('Uploading document:', documentFile.name);
 
-      if (response.status !== 200) {
-        throw new Error('Failed to upload document');
+      // Don't set Content-Type header - let browser set it with boundary
+      const response = await api.post('/upload', formData);
+
+      console.log('Document upload response:', response.data);
+
+      if (response.status !== 200 && response.status !== 201) {
+        throw new Error(`Upload failed with status ${response.status}`);
+      }
+
+      if (!response.data.url) {
+        throw new Error('No URL returned from server');
       }
 
       setUploadingDoc(false);
       return response.data.url;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Document upload error:', error);
-      toast.error("Failed to upload document");
+      
+      const errorMessage = error.response?.data?.message 
+        || error.message 
+        || 'Failed to upload document';
+      
+      console.error('Error details:', {
+        message: errorMessage,
+        status: error.response?.status,
+        data: error.response?.data
+      });
+      
+      toast.error(`Failed to upload document: ${errorMessage}`);
       setUploadingDoc(false);
       return null;
     }
@@ -198,16 +241,27 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
 
     setLoading(true);
 
-    // Upload images (Supabase storage might still work, or we skip for now if it fails)
-    // For this migration, we will try to keep using Supabase Storage if possible, 
-    // OR just send placeholder URLs if we want to fully decouple.
-    // Let's try to keep image upload but catch errors gracefully.
+    // Upload images to Cloudinary
     let imageUrls: string[] = [];
     try {
       imageUrls = await uploadImages();
+      
+      // Clean up blob URLs after successful upload
+      imagePreviewUrls.forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+      
+      // Update preview URLs to use Cloudinary URLs
+      if (imageUrls.length > 0) {
+        setImagePreviewUrls(imageUrls);
+      }
     } catch (err) {
       console.error("Image upload failed", err);
-      // Continue without images or show error?
+      toast.error("Failed to upload images. Please try again.");
+      setLoading(false);
+      return;
     }
 
     // Upload document if provided

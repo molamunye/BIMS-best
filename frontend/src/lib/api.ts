@@ -30,9 +30,37 @@ api.interceptors.request.use(
                 console.error('Failed to parse user token', error);
             }
         }
+        
+        // Don't set Content-Type for FormData - let the browser set it with boundary
+        if (config.data instanceof FormData) {
+            delete config.headers['Content-Type'];
+        }
+        
         return config;
     },
     (error) => Promise.reject(error)
+);
+
+// Add response interceptor for better error handling
+api.interceptors.response.use(
+    (response) => response,
+    (error) => {
+        if (error.response) {
+            // Server responded with error status
+            console.error('API Error:', {
+                status: error.response.status,
+                data: error.response.data,
+                url: error.config?.url
+            });
+        } else if (error.request) {
+            // Request made but no response received
+            console.error('Network Error:', error.message);
+        } else {
+            // Something else happened
+            console.error('Error:', error.message);
+        }
+        return Promise.reject(error);
+    }
 );
 
 export default api;
