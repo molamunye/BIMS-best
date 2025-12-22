@@ -23,11 +23,41 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
   const [uploadingDoc, setUploadingDoc] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [imageFiles, setImageFiles] = useState<File[]>([]);
-  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>(listing?.images || []);
+  
+  // Helper function to validate Cloudinary URLs
+  const isValidCloudinaryUrl = (url: string): boolean => {
+    if (!url || typeof url !== 'string') return false;
+    // Only accept HTTPS Cloudinary URLs or blob URLs for preview
+    return url.startsWith('https://res.cloudinary.com/') || url.startsWith('blob:');
+  };
+
+  // Helper function to filter valid URLs
+  const filterValidUrls = (urls: string[]): string[] => {
+    return urls.filter(url => isValidCloudinaryUrl(url));
+  };
+
+  // Initialize with filtered URLs - remove localhost, HTTP, and invalid URLs
+  const initialImages = listing?.images ? filterValidUrls(listing.images) : [];
+  const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>(initialImages);
   const [documentFile, setDocumentFile] = useState<File | null>(null);
   const [documentName, setDocumentName] = useState<string>("");
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [pendingListingData, setPendingListingData] = useState<any>(null);
+
+  // Clean up invalid URLs on mount and when listing changes
+  useEffect(() => {
+    if (listing?.images) {
+      const validUrls = filterValidUrls(listing.images);
+      if (validUrls.length !== listing.images.length) {
+        console.warn('Filtered out invalid image URLs:', {
+          original: listing.images.length,
+          valid: validUrls.length,
+          removed: listing.images.filter(url => !isValidCloudinaryUrl(url))
+        });
+      }
+      setImagePreviewUrls(validUrls);
+    }
+  }, [listing]);
 
   const [formData, setFormData] = useState({
     type: listing?.type || "property",
@@ -128,14 +158,18 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
   };
 
   const uploadImages = async (): Promise<string[]> => {
-    if (imageFiles.length === 0) return imagePreviewUrls.filter(url => url.startsWith('http'));
+    if (imageFiles.length === 0) {
+      // Return only valid Cloudinary URLs, filter out localhost/HTTP URLs
+      return filterValidUrls(imagePreviewUrls);
+    }
 
     setUploadingImages(true);
     const uploadedUrls: string[] = [];
 
-    // Keep existing URLs (Cloudinary URLs that start with http)
+    // Keep only valid existing URLs (HTTPS Cloudinary URLs only, no blob URLs)
     imagePreviewUrls.forEach(url => {
-      if (url.startsWith('http')) {
+      // Only keep HTTPS Cloudinary URLs, not blob URLs (they'll be replaced)
+      if (url && url.startsWith('https://res.cloudinary.com/')) {
         uploadedUrls.push(url);
       }
     });
@@ -160,7 +194,22 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
 
       if (response.data.urls && Array.isArray(response.data.urls)) {
         console.log(`Successfully uploaded ${response.data.urls.length} images`);
-        uploadedUrls.push(...response.data.urls);
+        // Filter to ensure only valid Cloudinary HTTPS URLs
+        const validUrls = response.data.urls.filter((url: string) => 
+          url && url.startsWith('https://res.cloudinary.com/')
+        );
+        
+        if (validUrls.length !== response.data.urls.length) {
+          console.warn('Some invalid URLs were filtered out:', {
+            total: response.data.urls.length,
+            valid: validUrls.length,
+            invalid: response.data.urls.filter((url: string) => 
+              !url || !url.startsWith('https://res.cloudinary.com/')
+            )
+          });
+        }
+        
+        uploadedUrls.push(...validUrls);
       } else {
         console.error('Unexpected response format:', response.data);
         throw new Error('Invalid response format from server');
@@ -253,9 +302,13 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
         }
       });
       
-      // Update preview URLs to use Cloudinary URLs
-      if (imageUrls.length > 0) {
-        setImagePreviewUrls(imageUrls);
+      // Filter and update preview URLs to use only valid Cloudinary URLs
+      const validImageUrls = filterValidUrls(imageUrls);
+      if (validImageUrls.length > 0) {
+        console.log('Updating preview URLs:', validImageUrls);
+        setImagePreviewUrls(validImageUrls);
+      } else if (imageUrls.length > 0) {
+        console.warn('No valid URLs after filtering:', imageUrls);
       }
     } catch (err) {
       console.error("Image upload failed", err);
@@ -420,22 +473,44 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
           <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-4">
             {imagePreviewUrls.length > 0 && (
               <div className="grid grid-cols-3 gap-2 mb-4">
-                {imagePreviewUrls.map((url, index) => (
-                  <div key={index} className="relative group">
-                    <img
-                      src={url}
-                      alt={`Preview ${index + 1}`}
-                      className="w-full h-20 object-cover rounded-md"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeImage(index)}
-                      className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      <X className="w-3 h-3" />
-                    </button>
-                  </div>
-                ))}
+                {imagePreviewUrls.map((url, index) => {
+                  // Use URL as key to force re-render when URL changes
+                  const imageKey = url.startsWith('blob:') ? `blob-${index}` : url;
+                  
+                  return (
+                    <div key={imageKey} className="relative group">
+                      <div className="relative w-full aspect-square bg-muted rounded-md overflow-hidden">
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            console.error('Image failed to load:', url);
+                            // Hide broken images
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                          onLoad={() => {
+                            console.log('Image loaded successfully:', url);
+                          }}
+                        />
+                        {uploadingImages && index >= imagePreviewUrls.length - imageFiles.length && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-md">
+                            <Loader2 className="w-4 h-4 animate-spin text-white" />
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeImage(index)}
+                        className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        aria-label={`Remove image ${index + 1}`}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
             <label className="flex flex-col items-center gap-2 cursor-pointer">
