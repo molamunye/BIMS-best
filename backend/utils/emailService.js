@@ -1,13 +1,30 @@
-const nodemailer = require('nodemailer');
+let nodemailer;
+try {
+  nodemailer = require('nodemailer');
+} catch (error) {
+  console.warn('⚠️  nodemailer not installed. Run: npm install nodemailer');
+  nodemailer = null;
+}
 
 // Create reusable transporter object using SMTP transport
 const createTransporter = () => {
+  if (!nodemailer) {
+    throw new Error('nodemailer is not installed. Please run: npm install nodemailer');
+  }
+
+  const emailUser = process.env.EMAIL_USER || process.env.SMTP_USER;
+  const emailPassword = process.env.EMAIL_PASSWORD || process.env.SMTP_PASSWORD;
+
+  if (!emailUser || !emailPassword) {
+    throw new Error('Email credentials not configured. Set EMAIL_USER and EMAIL_PASSWORD environment variables.');
+  }
+
   // Use Gmail SMTP (you can change this to other providers)
   return nodemailer.createTransport({
     service: 'gmail',
     auth: {
-      user: process.env.EMAIL_USER || process.env.SMTP_USER,
-      pass: process.env.EMAIL_PASSWORD || process.env.SMTP_PASSWORD, // App password for Gmail
+      user: emailUser,
+      pass: emailPassword, // App password for Gmail
     },
   });
 };
@@ -23,8 +40,22 @@ const createTransporter = () => {
  */
 const sendEmail = async (options) => {
   try {
+    // Check if nodemailer is installed
+    if (!nodemailer) {
+      console.log('--- EMAIL (nodemailer not installed - LOGGING TO CONSOLE) ---');
+      console.log(`To: ${options.to}`);
+      console.log(`Subject: ${options.subject}`);
+      console.log(`Message: ${options.text || options.html}`);
+      console.log('----------------------------------------------------------------');
+      console.log('⚠️  Install nodemailer: npm install nodemailer');
+      return true; // Return true to not break the flow
+    }
+
     // If email credentials are not configured, log to console
-    if (!process.env.EMAIL_USER && !process.env.SMTP_USER) {
+    const emailUser = process.env.EMAIL_USER || process.env.SMTP_USER;
+    const emailPassword = process.env.EMAIL_PASSWORD || process.env.SMTP_PASSWORD;
+
+    if (!emailUser || !emailPassword) {
       console.log('--- EMAIL (NOT CONFIGURED - LOGGING TO CONSOLE) ---');
       console.log(`To: ${options.to}`);
       console.log(`Subject: ${options.subject}`);
@@ -37,7 +68,7 @@ const sendEmail = async (options) => {
     const transporter = createTransporter();
 
     const mailOptions = {
-      from: `"BIMS Platform" <${process.env.EMAIL_USER || process.env.SMTP_USER}>`,
+      from: `"BIMS Platform" <${emailUser}>`,
       to: options.to,
       subject: options.subject,
       text: options.text,
@@ -48,7 +79,8 @@ const sendEmail = async (options) => {
     console.log('✅ Email sent successfully:', info.messageId);
     return true;
   } catch (error) {
-    console.error('❌ Error sending email:', error);
+    console.error('❌ Error sending email:', error.message || error);
+    console.error('Full error:', error);
     // Don't throw error - log it but return false
     return false;
   }
