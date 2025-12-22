@@ -183,7 +183,7 @@ export default function Sidebar({ userRole, activeTab, onTabChange, onSignOut, u
           onClick={onSignOut}
         >
           <LogOut className="w-4 h-4 mr-3" />
-          Sign Out
+          home page
         </Button>
       </div>
     </div>

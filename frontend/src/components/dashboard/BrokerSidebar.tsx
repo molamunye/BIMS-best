@@ -120,7 +120,7 @@ export default function BrokerSidebar({ userRole, activeTab, onTabChange, onSign
           onClick={onSignOut}
         >
           <LogOut className="w-4 h-4 mr-3" />
-          Sign Out
+          home page
         </Button>
       </div>
     </div>

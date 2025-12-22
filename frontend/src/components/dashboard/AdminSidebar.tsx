@@ -132,7 +132,7 @@ export default function AdminSidebar({ activeTab, onTabChange, onSignOut }: Admi
           onClick={onSignOut}
         >
           <LogOut className="w-4 h-4 mr-3" />
-          Sign Out
+          home page
         </Button>
       </div>
     </div>

@@ -11,7 +11,12 @@ const {
 } = require('../controllers/paymentController');
 
 // Chapa webhook endpoint (public)
+// Note: Chapa calls this as POST. GET is added only for simple manual checks.
 router.post('/webhook', handlePaymentWebhook);
+router.get('/webhook', (req, res) => {
+  console.log('[PAYMENTS] GET /api/payments/webhook hit - health check');
+  return res.status(200).json({ message: 'Webhook endpoint is live', method: 'GET' });
+});
 
 // Prepare payment data for inline checkout (protected)
 router.post('/prepare-listing', protect, prepareListingPayment);

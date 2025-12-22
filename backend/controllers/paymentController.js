@@ -4,6 +4,22 @@ const ContactRequest = require('../models/ContactRequest');
 const { verifyPayment, getChapaPaymentDetails } = require('../services/chapaService');
 const crypto = require('crypto');
 
+// Helper to generate a unique tx_ref and ensure it's stored on the listing
+const generateUniqueTxRef = async (prefix = "BIMS-listing") => {
+  let tx_ref;
+  let exists = true;
+
+  // Attempt until we find a tx_ref that is not used by any listing or contact
+  while (exists) {
+    tx_ref = `${prefix}-${crypto.randomBytes(8).toString("hex")}-${Date.now()}`;
+    const listingExists = await Listing.findOne({ transactionId: tx_ref });
+    const contactExists = await ContactRequest.findOne({ transactionId: tx_ref });
+    exists = !!listingExists || !!contactExists;
+  }
+
+  return tx_ref;
+};
+
 // @desc    Prepare payment data for inline checkout (Listing)
 // @route   POST /api/payments/prepare-listing
 // @access  Private
@@ -18,12 +34,17 @@ const prepareListingPayment = async (req, res) => {
       if (!listing) {
         return res.status(404).json({ message: 'Listing not found' });
       }
-      if (listing.paymentStatus === 'paid') {
+      if (['paid', 'success'].includes(listing.paymentStatus)) {
         return res.status(400).json({ message: 'Listing already paid' });
+      }
+      // Ensure it has a unique tx_ref
+      if (!listing.transactionId) {
+        listing.transactionId = await generateUniqueTxRef();
+        await listing.save();
       }
     } else if (listingData) {
       // Create draft listing with pending payment
-      const tx_ref = `BIMS-listing-${crypto.randomBytes(8).toString('hex')}-${Date.now()}`;
+      const tx_ref = await generateUniqueTxRef();
       listing = await Listing.create({
         ...listingData,
         owner: req.user.id,
@@ -39,7 +60,7 @@ const prepareListingPayment = async (req, res) => {
       return res.status(400).json({ message: 'Listing ID or listing data required' });
     }
 
-    const tx_ref = listing.transactionId || `BIMS-listing-${crypto.randomBytes(8).toString('hex')}-${Date.now()}`;
+    const tx_ref = listing.transactionId || await generateUniqueTxRef();
     
     // Update transactionId if not set
     if (!listing.transactionId) {
@@ -48,11 +69,11 @@ const prepareListingPayment = async (req, res) => {
     }
 
     const amount = 100; // Flat fee for listing creation
-    
-
-
-    const backendBase = (process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, '');
+        
+    // Build backend base URL from the incoming request to avoid localhost in production
+    const backendBase = `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
     const callbackUrl = `${backendBase}/api/payments/webhook`;
+    console.log('[PAYMENTS] prepare-listing callbackUrl:', callbackUrl, 'for tx_ref:', tx_ref);
 
     const userDetails = getChapaPaymentDetails(req.user);
 
@@ -105,10 +126,10 @@ const prepareContactPayment = async (req, res) => {
     const tx_ref = `BIMS-contact-${crypto.randomBytes(8).toString('hex')}-${Date.now()}`;
     const amount = 50; // Flat fee for contacting broker
     
-
-
-    const backendBase = (process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`).replace(/\/$/, '');
+    // Build backend base URL from the incoming request to avoid localhost in production
+    const backendBase = `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
     const callbackUrl = `${backendBase}/api/payments/webhook`;
+    console.log('[PAYMENTS] prepare-contact callbackUrl:', callbackUrl, 'for tx_ref:', tx_ref);
 
     const userDetails = getChapaPaymentDetails(req.user);
 
@@ -160,15 +181,17 @@ const manuallyVerifyPayment = async (req, res) => {
         
         const listing = await Listing.findOne({ transactionId: tx_ref });
         if (listing) {
-          if (listing.paymentStatus !== 'paid') {
-            listing.paymentStatus = 'paid';
+          if (!['paid', 'success'].includes(listing.paymentStatus)) {
+            listing.paymentStatus = 'success';
+            listing.status = 'active';
+            listing.verificationStatus = 'pending';
             await listing.save();
             
             // Notify owner
             await Notification.create({
               recipient: listing.owner,
               title: 'Listing Payment Successful',
-              message: `Your listing "${listing.title}" payment was successful. It will now be sent for admin verification.`,
+              message: `Your listing "${listing.title}" payment was successful. It is now active and awaits admin verification.`,
               type: 'success',
               relatedEntity: listing._id,
             });
@@ -238,32 +261,37 @@ const handlePaymentWebhook = async (req, res) => {
                 const listing = await Listing.findOne({ transactionId: tx_ref });
                 if (listing) {
                     console.log('Found listing for payment:', listing._id, listing.title);
-                    listing.paymentStatus = 'paid';
-                    // Keep status as 'pending' - it will be activated after admin verification
-                    // Keep verificationStatus as 'pending' - ready for admin to assign broker
-                    // No need to change verificationStatus, it's already 'pending'
+                    const wasPaid = ['paid', 'success'].includes(listing.paymentStatus);
+                    listing.paymentStatus = 'success';
+                    listing.status = 'active'; // activate listing after payment
+                    listing.verificationStatus = 'pending'; // awaiting admin review
                     await listing.save();
-                    console.log('Listing payment status updated to paid:', listing._id);
+                    console.log('Listing payment status updated to success/active:', listing._id);
                     
-                    // Notify owner
-                    await Notification.create({
-                        recipient: listing.owner,
-                        title: 'Listing Payment Successful',
-                        message: `Your listing "${listing.title}" payment was successful. It will now be sent for admin verification.`,
-                        type: 'success',
-                        relatedEntity: listing._id,
-                    });
-                    
-                    // Notify all admins about payment completion
-                    const admins = await User.find({ role: 'admin' });
-                    for (const admin of admins) {
-                        await Notification.create({
-                            recipient: admin._id,
-                            title: 'New Listing Payment Completed',
-                            message: `Listing "${listing.title}" payment has been completed. Please review and assign a broker for verification.`,
-                            type: 'info',
-                            relatedEntity: listing._id,
-                        });
+                    // Send notifications only on first success
+                    if (!wasPaid) {
+                      // Notify owner
+                      await Notification.create({
+                          recipient: listing.owner,
+                          title: 'Listing Payment Successful',
+                          message: `Your listing "${listing.title}" payment was successful. It is now active and awaiting admin verification.`,
+                          type: 'success',
+                          relatedEntity: listing._id,
+                      });
+                      
+                      // Notify all admins about payment completion
+                      const admins = await User.find({ role: 'admin' });
+                      for (const admin of admins) {
+                          await Notification.create({
+                              recipient: admin._id,
+                              title: 'New Listing Payment Completed',
+                              message: `Listing "${listing.title}" payment has been completed. Please review and assign a broker for verification.`,
+                              type: 'info',
+                              relatedEntity: listing._id,
+                          });
+                      }
+                    } else {
+                      console.log('Payment already processed previously for listing:', listing._id);
                     }
                 } else {
                     console.error('Listing not found for tx_ref:', tx_ref);
@@ -280,6 +308,21 @@ const handlePaymentWebhook = async (req, res) => {
         } else {
             // Payment failed or not successful
             console.log('Payment verification failed or not successful:', verification);
+            // Attempt to mark related listing/contact as failed if found
+            if (tx_ref && tx_ref.startsWith('BIMS-listing-')) {
+              const listing = await Listing.findOne({ transactionId: tx_ref });
+              if (listing) {
+                listing.paymentStatus = 'failed';
+                await listing.save();
+                console.log('Marked listing payment as failed:', listing._id);
+              }
+            } else if (tx_ref && tx_ref.startsWith('BIMS-contact-')) {
+              const contact = await ContactRequest.findOne({ transactionId: tx_ref });
+              if (contact) {
+                contact.status = 'failed';
+                await contact.save();
+              }
+            }
             // Still return 200 to acknowledge receipt to Chapa, otherwise they retry
             return res.sendStatus(200);
         }
