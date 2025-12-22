@@ -13,6 +13,15 @@ import BrokerDashboard from "./pages/BrokerDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import ForgotPassword from "./pages/ForgotPassword";
 import NotFound from "./pages/NotFound";
+// Footer pages
+import AboutUs from "./pages/footer/AboutUs";
+import ForBrokers from "./pages/footer/ForBrokers";
+import HowItWorks from "./pages/footer/HowItWorks";
+import Support from "./pages/footer/Support";
+import HelpCenter from "./pages/footer/HelpCenter";
+import TermsOfService from "./pages/footer/TermsOfService";
+import PrivacyPolicy from "./pages/footer/PrivacyPolicy";
+import ContactUs from "./pages/footer/ContactUs";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +41,15 @@ const App = () => (
               <Route path="/broker-dashboard" element={<BrokerDashboard />} />
               <Route path="/admin-dashboard" element={<AdminDashboard />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
+              {/* Footer pages */}
+              <Route path="/about-us" element={<AboutUs />} />
+              <Route path="/for-brokers" element={<ForBrokers />} />
+              <Route path="/how-it-works" element={<HowItWorks />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/help-center" element={<HelpCenter />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/contact-us" element={<ContactUs />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

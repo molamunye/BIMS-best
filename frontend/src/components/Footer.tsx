@@ -1,4 +1,5 @@
-import { Home, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const Footer = () => {
   return (
@@ -20,20 +21,52 @@ const Footer = () => {
           <div>
             <h3 className="font-semibold text-card-foreground mb-4">Quick Links</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">About Us</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Browse Listings</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">For Brokers</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">How It Works</a></li>
+              <li>
+                <Link to="/about-us" className="hover:text-primary transition-colors">
+                  About Us
+                </Link>
+              </li>
+              <li>
+                <Link to="/for-brokers" className="hover:text-primary transition-colors">
+                  For Brokers
+                </Link>
+              </li>
+              <li>
+                <Link to="/how-it-works" className="hover:text-primary transition-colors">
+                  How It Works
+                </Link>
+              </li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-semibold text-card-foreground mb-4">Support</h3>
             <ul className="space-y-2 text-muted-foreground">
-              <li><a href="#" className="hover:text-primary transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-primary transition-colors">Contact Us</a></li>
+              <li>
+                <Link to="/support" className="hover:text-primary transition-colors">
+                  Support
+                </Link>
+              </li>
+              <li>
+                <Link to="/help-center" className="hover:text-primary transition-colors">
+                  Help Center
+                </Link>
+              </li>
+              <li>
+                <Link to="/terms-of-service" className="hover:text-primary transition-colors">
+                  Terms of Service
+                </Link>
+              </li>
+              <li>
+                <Link to="/privacy-policy" className="hover:text-primary transition-colors">
+                  Privacy Policy
+                </Link>
+              </li>
+              <li>
+                <Link to="/contact-us" className="hover:text-primary transition-colors">
+                  Contact Us
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -42,11 +75,15 @@ const Footer = () => {
             <ul className="space-y-3 text-muted-foreground">
               <li className="flex items-start gap-2">
                 <Phone className="h-5 w-5 mt-0.5 text-primary" />
-                <span>+251 123 456 789</span>
+                <a href="tel:+251924548557" className="hover:text-primary transition-colors">
+                  +251 924 548 557
+                </a>
               </li>
               <li className="flex items-start gap-2">
                 <Mail className="h-5 w-5 mt-0.5 text-primary" />
-                <span>info@bims.com</span>
+                <a href="mailto:munyemola@gmail.com" className="hover:text-primary transition-colors">
+                  munyemola@gmail.com
+                </a>
               </li>
             </ul>
           </div>
