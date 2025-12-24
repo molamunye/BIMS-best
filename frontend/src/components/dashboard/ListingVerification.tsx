@@ -78,21 +78,31 @@ export default function ListingVerification() {
         email: b.email || ''
       }));
 
-      const mapListing = (l: any) => ({
-        id: l._id || l.id,
-        title: l.title || 'Untitled',
-        type: l.type || 'property',
-        verification_status: l.verificationStatus || 'pending',
-        assigned_broker_id: l.assignedBroker?._id || l.assignedBroker?.id || l.assignedBroker,
-        broker_id: l.owner?._id || l.owner?.id,
-        created_at: l.createdAt,
-        metadata: l.metadata,
-        profiles: {
-          full_name: l.owner?.fullName || 'Unknown',
-          email: l.owner?.email || ''
-        },
-        brokerName: l.assignedBroker?.fullName
-      });
+      const mapListing = (l: any) => {
+        let meta = l.metadata;
+        if (typeof meta === 'string') {
+          try {
+            meta = JSON.parse(meta);
+          } catch (e) {
+            console.error('Failed to parse metadata', e);
+          }
+        }
+        return {
+          id: l._id || l.id,
+          title: l.title || 'Untitled',
+          type: l.type || 'property',
+          verification_status: l.verificationStatus || 'pending',
+          assigned_broker_id: l.assignedBroker?._id || l.assignedBroker?.id || l.assignedBroker,
+          broker_id: l.owner?._id || l.owner?.id,
+          created_at: l.createdAt,
+          metadata: meta,
+          profiles: {
+            full_name: l.owner?.fullName || 'Unknown',
+            email: l.owner?.email || ''
+          },
+          brokerName: l.assignedBroker?.fullName
+        };
+      };
 
       setPendingListings(pendingData.map(mapListing));
       setAssignedListings(assignedData.map(mapListing));

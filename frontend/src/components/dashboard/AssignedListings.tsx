@@ -41,8 +41,21 @@ export default function AssignedListings({ isAdmin = false }: AssignedListingsPr
       }
 
       const response = await api.get(url);
-      setListings(response.data || []);
-      setFilteredListings(response.data || []);
+      const data = response.data || [];
+      const processedData = data.map((l: any) => {
+        let meta = l.metadata;
+        if (typeof meta === 'string') {
+          try {
+            meta = JSON.parse(meta);
+          } catch (e) {
+            console.error('Failed to parse metadata', e);
+          }
+        }
+        return { ...l, metadata: meta };
+      });
+
+      setListings(processedData);
+      setFilteredListings(processedData);
     } catch (error) {
       console.error(error);
       toast.error("Failed to load assigned listings");
