@@ -6,7 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Building2, MapPin, User, Clock, CheckCircle, XCircle, Search } from "lucide-react";
+import { Building2, MapPin, User, Clock, CheckCircle, XCircle, Search, FileText } from "lucide-react";
 import { formatETB } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -156,6 +156,23 @@ export default function AssignedListings({ isAdmin = false }: AssignedListingsPr
                   <Clock className="w-3 h-3" />
                   {new Date(listing.createdAt).toLocaleDateString()}
                 </div>
+
+                <div className="pt-2">
+                  {listing.metadata?.license_document ? (
+                    <a
+                      href={listing.metadata.license_document}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center justify-center w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm font-medium transition-colors"
+                    >
+                      <FileText className="w-4 h-4 mr-2" />
+                      View License PDF
+                    </a>
+                  ) : (
+                    <p className="text-muted-foreground text-sm text-center py-2">No license document uploaded</p>
+                  )}
+                </div>
+
                 {!isAdmin && listing.verificationStatus === "pending" && (
                   <div className="flex flex-col sm:flex-row gap-2 pt-2">
                     <Button

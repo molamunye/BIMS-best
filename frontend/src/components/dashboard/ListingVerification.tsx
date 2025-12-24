@@ -202,11 +202,17 @@ export default function ListingVerification() {
                         <TableCell>{listing.profiles?.full_name || 'Unknown'}</TableCell>
                         <TableCell>
                           {listing.metadata?.license_document ? (
-                            <Button variant="ghost" size="sm" onClick={() => openDocument(listing.metadata.license_document)}>
-                              <FileText className="w-4 h-4 mr-2" /> View PDF
-                            </Button>
+                            <a
+                              href={listing.metadata.license_document}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium transition-colors"
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              View License PDF
+                            </a>
                           ) : (
-                            <span className="text-muted-foreground text-sm">No Doc</span>
+                            <span className="text-muted-foreground text-xs">No license document uploaded</span>
                           )}
                         </TableCell>
                         <TableCell>
@@ -267,6 +273,7 @@ export default function ListingVerification() {
                       <TableHead>Title</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Client</TableHead>
+                      <TableHead>Document</TableHead>
                       <TableHead>Assigned Broker</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -277,6 +284,21 @@ export default function ListingVerification() {
                         <TableCell className="font-medium">{listing.title}</TableCell>
                         <TableCell className="capitalize">{listing.type}</TableCell>
                         <TableCell>{listing.profiles?.full_name}</TableCell>
+                        <TableCell>
+                          {listing.metadata?.license_document ? (
+                            <a
+                              href={listing.metadata.license_document}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium transition-colors"
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              View License PDF
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">No license document uploaded</span>
+                          )}
+                        </TableCell>
                         <TableCell>
                           {/* Try to use populated name, fallback to lookup */}
                           {listing.brokerName || brokers.find(b => b.id === listing.assigned_broker_id)?.full_name || 'Unknown'}
@@ -310,6 +332,7 @@ export default function ListingVerification() {
                       <TableHead>Title</TableHead>
                       <TableHead>Type</TableHead>
                       <TableHead>Client</TableHead>
+                      <TableHead>Document</TableHead>
                       <TableHead>Assigned Broker</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -322,6 +345,21 @@ export default function ListingVerification() {
                         <TableCell>{listing.profiles?.full_name}</TableCell>
                         <TableCell>
                           {listing.brokerName || brokers.find(b => b.id === listing.assigned_broker_id)?.full_name || 'N/A'}
+                        </TableCell>
+                        <TableCell>
+                          {listing.metadata?.license_document ? (
+                            <a
+                              href={listing.metadata.license_document}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center justify-center px-3 py-1.5 bg-blue-600 text-white rounded hover:bg-blue-700 text-xs font-medium transition-colors"
+                            >
+                              <FileText className="w-3 h-3 mr-1" />
+                              View License PDF
+                            </a>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">No license document uploaded</span>
+                          )}
                         </TableCell>
                         <TableCell>{getStatusBadge(listing.verification_status)}</TableCell>
                         <TableCell>
