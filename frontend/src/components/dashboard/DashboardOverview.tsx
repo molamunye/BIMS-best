@@ -80,7 +80,7 @@ export default function DashboardOverview({ userRole, onNavigate }: DashboardOve
           // Update the cards below to use these values
         } else {
           setStats({
-            activeListings: data.activeListings || 0, // For client showing their listings
+            activeListings: data.platformActiveListings || 0, // Show platform total active listings for client
             totalUsers: data.totalUsers || 0, // Maybe not relevant for client
             pendingBrokers: 0,
             totalMessages: 0,
