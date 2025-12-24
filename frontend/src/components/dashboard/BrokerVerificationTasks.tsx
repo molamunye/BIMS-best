@@ -193,7 +193,7 @@ export default function BrokerVerificationTasks() {
                     </DialogHeader>
 
                     <ScrollArea className="flex-1 pr-4">
-                      <div className="space-y-6">
+                      <div className="space-y-6 pb-6">
                         {/* Listing Details */}
                         <div className="space-y-4">
                           {listing.images && listing.images.length > 0 && (

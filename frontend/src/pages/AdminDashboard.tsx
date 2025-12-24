@@ -7,7 +7,7 @@ import NotificationBell from "@/components/NotificationBell";
 import ThemeToggle from "@/components/ThemeToggle";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import AdminSidebar from "@/components/dashboard/AdminSidebar";
 import DashboardOverview from "@/components/dashboard/DashboardOverview";
 import ListingsManager from "@/components/dashboard/ListingsManager";
@@ -124,6 +124,10 @@ export default function AdminDashboard() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="left" className="p-0 w-64">
+                <div className="sr-only">
+                  <SheetTitle>Admin Navigation</SheetTitle>
+                  <SheetDescription>Access admin dashboard navigation links</SheetDescription>
+                </div>
                 <AdminSidebar
                   userRole="admin"
                   activeTab={activeTab}

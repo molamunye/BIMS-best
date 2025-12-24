@@ -23,8 +23,8 @@ const listingSchema = new mongoose.Schema({
         enum: ['property', 'vehicle'],
     },
     metadata: {
-        type: Map,
-        of: mongoose.Schema.Types.Mixed,
+        type: mongoose.Schema.Types.Mixed,
+        default: {},
     },
     paymentStatus: {
         type: String,

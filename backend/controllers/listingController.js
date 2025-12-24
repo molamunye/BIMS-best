@@ -43,6 +43,10 @@ const createListing = async (req, res) => {
       transactionId: tx_ref,
     });
 
+    console.log('[DEBUG] Created listing:', listing._id);
+    console.log('[DEBUG] Metadata saved:', listing.metadata);
+    console.log('[DEBUG] Images saved:', listing.images);
+
     // Notify all admins about new listing creation
     try {
       const admins = await User.find({ role: 'admin' });
