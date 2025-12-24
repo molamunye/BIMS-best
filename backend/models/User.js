@@ -21,7 +21,11 @@ const userSchema = new mongoose.Schema({
         default: 'client',
     },
     bio: String,
-    phone: String,
+    phone: {
+        type: String,
+        unique: true,
+        sparse: true // sparse allows multiple null values if some users don't have phone
+    },
     location: String,
     avatar: String,
     settings: {

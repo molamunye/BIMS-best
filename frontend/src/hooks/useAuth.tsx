@@ -22,8 +22,8 @@ interface User {
 interface AuthContextType {
   user: User | null;
   // session: Session | null; // Removed session
-  signUp: (email: string, password: string, fullName: string, role?: "client" | "broker" | "admin") => Promise<void>;
-  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName: string, phone: string) => Promise<void>;
+  signIn: (identifier: string, password: string) => Promise<void>;
   updateUser: (updatedUser: Partial<User>) => void;
   signOut: () => Promise<void>;
   loading: boolean;
@@ -44,13 +44,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
 
-  const signUp = async (email: string, password: string, fullName: string, role: "client" | "broker" | "admin" = "client") => {
+  const signUp = async (email: string, password: string, fullName: string, phone: string) => {
     try {
       const response = await api.post('/auth/signup', {
         email,
         password,
         fullName,
-        role
+        phone
       });
 
       const loggedInUser = { ...response.data, id: response.data._id };
@@ -70,10 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (identifier: string, password: string) => {
     try {
+      // Send as 'identifier' to match backend expectation, or keep sending as 'email' if backend falls back to it.
+      // But we changed backend to look for 'identifier' mostly.
       const response = await api.post('/auth/login', {
-        email,
+        identifier,
         password
       });
 

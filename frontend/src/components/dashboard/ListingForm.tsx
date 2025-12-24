@@ -480,9 +480,9 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
                   return (
                     <div key={imageKey} className="relative group">
                       <div className="relative w-full aspect-square bg-muted rounded-md overflow-hidden">
-                        <img
-                          src={url}
-                          alt={`Preview ${index + 1}`}
+                    <img
+                      src={url}
+                      alt={`Preview ${index + 1}`}
                           className="w-full h-full object-cover"
                           loading="lazy"
                           onError={(e) => {
@@ -500,15 +500,15 @@ export default function ListingForm({ onSuccess, listing }: ListingFormProps) {
                           </div>
                         )}
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => removeImage(index)}
+                    <button
+                      type="button"
+                      onClick={() => removeImage(index)}
                         className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover:opacity-100 transition-opacity z-10"
                         aria-label={`Remove image ${index + 1}`}
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                   );
                 })}
               </div>

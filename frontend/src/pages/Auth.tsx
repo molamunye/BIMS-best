@@ -3,13 +3,14 @@ import { useAuth } from "@/hooks/useAuth";
 import { useSearchParams } from "react-router-dom";
 // Supabase import removed
 import { toast } from "sonner";
-import { Mail, Lock, User, Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Eye, EyeOff, Phone } from "lucide-react";
 
 interface ValidationErrors {
   email?: string;
   password?: string;
   confirmPassword?: string;
   fullName?: string;
+  phone?: string;
 }
 
 export default function Auth() {
@@ -26,15 +27,23 @@ export default function Auth() {
     password: "",
     confirmPassword: "",
     fullName: "",
+    phone: "",
   });
 
   const [signInErrors, setSignInErrors] = useState<ValidationErrors>({});
   const [signUpErrors, setSignUpErrors] = useState<ValidationErrors>({});
 
-  const validateEmail = (email: string): string | undefined => {
-    if (!email.trim()) return "Email is required";
+  const validateEmailOrPhone = (value: string): string | undefined => {
+    if (!value.trim()) return "Email or Phone is required";
+    // Chech if it's email
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    // Check if it's phone (simple check: mostly digits, min length)
+    const phoneRegex = /^\+?[0-9]{10,15}$/;
+
+    const isEmail = emailRegex.test(value);
+    const isPhone = phoneRegex.test(value.replace(/\s/g, ''));
+
+    if (!isEmail && !isPhone) return "Please enter a valid email or phone number";
     return undefined;
   };
 
@@ -50,9 +59,23 @@ export default function Auth() {
     return undefined;
   };
 
+  const validatePhone = (phone: string): string | undefined => {
+    if (!phone.trim()) return "Phone number is required";
+    const phoneRegex = /^\+?[0-9]{10,15}$/;
+    if (!phoneRegex.test(phone.replace(/\s/g, ''))) return "Please enter a valid phone number";
+    return undefined;
+  };
+
+  const validateEmailOnly = (email: string): string | undefined => {
+    if (!email.trim()) return "Email is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return "Please enter a valid email address";
+    return undefined;
+  };
+
   const validateSignIn = (): boolean => {
     const errors: ValidationErrors = {};
-    errors.email = validateEmail(signInData.email);
+    errors.email = validateEmailOrPhone(signInData.email);
     errors.password = signInData.password ? undefined : "Password is required";
 
     setSignInErrors(errors);
@@ -62,7 +85,8 @@ export default function Auth() {
   const validateSignUp = (): boolean => {
     const errors: ValidationErrors = {};
     errors.fullName = validateFullName(signUpData.fullName);
-    errors.email = validateEmail(signUpData.email);
+    errors.phone = validatePhone(signUpData.phone);
+    errors.email = validateEmailOnly(signUpData.email);
     errors.password = validatePassword(signUpData.password);
 
     if (!signUpData.confirmPassword) {
@@ -72,7 +96,7 @@ export default function Auth() {
     }
 
     setSignUpErrors(errors);
-    return !errors.fullName && !errors.email && !errors.password && !errors.confirmPassword;
+    return !errors.fullName && !errors.phone && !errors.email && !errors.password && !errors.confirmPassword;
   };
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -98,7 +122,7 @@ export default function Auth() {
 
     setIsLoading(true);
     try {
-      await signUp(signUpData.email, signUpData.password, signUpData.fullName, "client");
+      await signUp(signUpData.email, signUpData.password, signUpData.fullName, signUpData.phone);
     } catch (error: any) {
       const message = error?.message || "Sign up failed";
       toast.error(message);
@@ -133,8 +157,8 @@ export default function Auth() {
 
             <div className="auth-input-box">
               <input
-                type="email"
-                placeholder="Email"
+                type="text"
+                placeholder="Email or Phone Number"
                 value={signInData.email}
                 onChange={(e) => {
                   setSignInData({ ...signInData, email: e.target.value });
@@ -205,6 +229,25 @@ export default function Auth() {
             {signUpErrors.fullName && (
               <p className="text-red-500 text-xs mt-1 mb-2 text-left">{signUpErrors.fullName}</p>
             )}
+
+            <div className="auth-input-box">
+              <input
+                type="tel"
+                placeholder="Phone Number"
+                value={signUpData.phone}
+                onChange={(e) => {
+                  setSignUpData({ ...signUpData, phone: e.target.value });
+                  if (signUpErrors.phone) setSignUpErrors({ ...signUpErrors, phone: undefined });
+                }}
+                className={signUpErrors.phone ? "border-red-500" : ""}
+              />
+              <Phone className="auth-input-icon" />
+            </div>
+            {signUpErrors.phone && (
+              <p className="text-red-500 text-xs mt-1 mb-2 text-left">{signUpErrors.phone}</p>
+            )}
+
+
 
             <div className="auth-input-box">
               <input

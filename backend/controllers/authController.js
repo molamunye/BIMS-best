@@ -11,14 +11,35 @@ const generateToken = (id) => {
 // @desc    Register new user
 // @route   POST /api/auth/signup
 // @access  Public
+// @desc    Register new user
+// @route   POST /api/auth/signup
+// @access  Public
 const registerUser = async (req, res) => {
-    let { fullName, email, password } = req.body;
+    let { fullName, email, password, phone } = req.body;
     email = email.trim().toLowerCase();
 
+    // Ensure phone is present since we want to support login with it
+    if (!phone) {
+        return res.status(400).json({ message: 'Phone number is required' });
+    }
+
     try {
-        const userExists = await User.findOne({ email });
+        // Check if user exists by email OR phone
+        const userExists = await User.findOne({
+            $or: [
+                { email },
+                { phone }
+            ]
+        });
 
         if (userExists) {
+            // Determine which field is duplicate
+            if (userExists.email === email) {
+                return res.status(400).json({ message: 'User with this email already exists' });
+            }
+            if (userExists.phone === phone) {
+                return res.status(400).json({ message: 'User with this phone number already exists' });
+            }
             return res.status(400).json({ message: 'User already exists' });
         }
 
@@ -26,7 +47,8 @@ const registerUser = async (req, res) => {
             fullName,
             email,
             password,
-            role: 'client', // Force default to client
+            phone,
+            role: 'client', // Default to client
         });
 
         if (user) {
@@ -34,6 +56,7 @@ const registerUser = async (req, res) => {
                 _id: user._id,
                 fullName: user.fullName,
                 email: user.email,
+                phone: user.phone,
                 role: user.role,
                 token: generateToken(user._id),
             });
@@ -49,22 +72,35 @@ const registerUser = async (req, res) => {
 // @route   POST /api/auth/login
 // @access  Public
 const loginUser = async (req, res) => {
+    // accept identifier which can be email or phone
     let { email, password } = req.body;
-    email = email.trim().toLowerCase();
+    let identifier = email; // Fallback for old clients sending 'email'
+    if (req.body.identifier) {
+        identifier = req.body.identifier;
+    }
+
+    identifier = identifier.trim().toLowerCase();
 
     try {
-        const user = await User.findOne({ email });
+        // Find user by email OR phone
+        const user = await User.findOne({
+            $or: [
+                { email: identifier },
+                { phone: identifier }
+            ]
+        });
 
         if (user && (await user.matchPassword(password))) {
             res.json({
                 _id: user._id,
                 fullName: user.fullName,
                 email: user.email,
+                phone: user.phone,
                 role: user.role,
                 token: generateToken(user._id),
             });
         } else {
-            res.status(401).json({ message: 'Invalid email or password' });
+            res.status(401).json({ message: 'Invalid email/phone or password' });
         }
     } catch (error) {
         res.status(500).json({ message: error.message });

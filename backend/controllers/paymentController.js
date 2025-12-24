@@ -69,7 +69,7 @@ const prepareListingPayment = async (req, res) => {
     }
 
     const amount = 100; // Flat fee for listing creation
-        
+    
     // Build backend base URL from the incoming request to avoid localhost in production
     const backendBase = `${req.protocol}://${req.get('host')}`.replace(/\/$/, '');
     const callbackUrl = `${backendBase}/api/payments/webhook`;
@@ -270,25 +270,25 @@ const handlePaymentWebhook = async (req, res) => {
                     
                     // Send notifications only on first success
                     if (!wasPaid) {
-                      // Notify owner
-                      await Notification.create({
-                          recipient: listing.owner,
-                          title: 'Listing Payment Successful',
+                    // Notify owner
+                    await Notification.create({
+                        recipient: listing.owner,
+                        title: 'Listing Payment Successful',
                           message: `Your listing "${listing.title}" payment was successful. It is now active and awaiting admin verification.`,
-                          type: 'success',
-                          relatedEntity: listing._id,
-                      });
-                      
-                      // Notify all admins about payment completion
-                      const admins = await User.find({ role: 'admin' });
-                      for (const admin of admins) {
-                          await Notification.create({
-                              recipient: admin._id,
-                              title: 'New Listing Payment Completed',
-                              message: `Listing "${listing.title}" payment has been completed. Please review and assign a broker for verification.`,
-                              type: 'info',
-                              relatedEntity: listing._id,
-                          });
+                        type: 'success',
+                        relatedEntity: listing._id,
+                    });
+                    
+                    // Notify all admins about payment completion
+                    const admins = await User.find({ role: 'admin' });
+                    for (const admin of admins) {
+                        await Notification.create({
+                            recipient: admin._id,
+                            title: 'New Listing Payment Completed',
+                            message: `Listing "${listing.title}" payment has been completed. Please review and assign a broker for verification.`,
+                            type: 'info',
+                            relatedEntity: listing._id,
+                        });
                       }
                     } else {
                       console.log('Payment already processed previously for listing:', listing._id);
